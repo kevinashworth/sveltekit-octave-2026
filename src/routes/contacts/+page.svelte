@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { ArrowLeftIcon, ArrowRightIcon } from '@lucide/svelte';
+	import { rankItem } from '@tanstack/match-sorter-utils';
 	import {
-		createColumnHelper,
 		createSvelteTable,
 		flexRender,
 		getCoreRowModel,
-		type TableOptions
+		getFilteredRowModel
 	} from '@tanstack/svelte-table';
+	import type { ColumnDef, FilterFn, TableOptions } from '@tanstack/svelte-table';
 	import { writable } from 'svelte/store';
-	import { goto } from '$app/navigation';
+
 	import type { PageData } from './$types';
 	import type { Contact } from '$lib/schemas';
 
@@ -16,23 +17,49 @@
 	$inspect('Page data:', data);
 	const contacts = $derived(data.contacts);
 	const length = $derived(data.contacts.length);
-	// const currentPage = $derived(data.currentPage);
 	const pageSize = $derived(data.pageSize);
 	const totalCount = $derived(data.totalCount);
 	const paginationSettings = $derived(data.paginationSettings);
 
-	let page = $state(data.currentPage);
+	let globalFilter = '';
 
-	const colHelp = createColumnHelper<Partial<Contact>>();
+	// see https://tanstack.com/table/latest/docs/framework/svelte/examples/filtering
+	const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
+		// If no search term, show all rows
+		if (!value) {
+			return true;
+		}
 
-	const columnDefs = [
-		colHelp.accessor('firstName', {
-			header: 'First Name'
-		}),
-		colHelp.accessor('lastName', {
-			header: 'Last Name'
-		}),
-		colHelp.accessor('updatedAt', {
+		const itemValue = row.getValue(columnId);
+
+		// If column is empty but we're searching for something, don't match this column
+		if (itemValue == null || itemValue === '') {
+			return false;
+		}
+
+		const itemRank = rankItem(String(itemValue), value);
+		addMeta({ itemRank });
+		return itemRank.passed;
+	};
+
+	let columns: ColumnDef<Partial<Contact>>[] = [
+		{
+			accessorKey: 'firstName',
+			header: 'First Name',
+			filterFn: fuzzyFilter
+		},
+		{
+			accessorKey: 'lastName',
+			header: 'Last Name',
+			filterFn: fuzzyFilter
+		},
+		{
+			accessorKey: 'addressString',
+			header: 'Address String',
+			filterFn: fuzzyFilter
+		},
+		{
+			accessorKey: 'updatedAt',
 			header: 'Last Updated',
 			cell: (info) => {
 				const date = info.getValue<Date | undefined>();
@@ -43,8 +70,9 @@
 					month: 'short',
 					day: 'numeric'
 				});
-			}
-		})
+			},
+			filterFn: fuzzyFilter
+		}
 	];
 
 	// const table = createSvelteTable({
@@ -55,7 +83,7 @@
 
 	let tableOptions = writable<TableOptions<Partial<Contact>>>({
 		data: contacts,
-		columns: columnDefs,
+		columns,
 		getCoreRowModel: getCoreRowModel()
 	});
 
@@ -65,22 +93,30 @@
 	$effect(() => {
 		tableOptions.set({
 			data: contacts,
-			columns: columnDefs,
-			getCoreRowModel: getCoreRowModel()
+			columns,
+			// state: {
+			// 	globalFilter
+			// },
+			// onGlobalFilterChange: (updater) => {
+			// 	globalFilter = typeof updater === 'function' ? updater(globalFilter) : updater;
+			// },
+			filterFns: {
+				fuzzy: fuzzyFilter
+			},
+			getCoreRowModel: getCoreRowModel(),
+			getFilteredRowModel: getFilteredRowModel(),
+			globalFilterFn: 'fuzzy'
 		});
 	});
-
-	function onPageChange(event: { page: number }) {
-		page = event.page;
-		const url = new URL(window.location.href);
-		url.searchParams.set('page', String(page));
-		goto(url.toString());
-	}
 
 	function getPageUrl(pageNum: number): string {
 		const url = new URL(window.location.href);
 		url.searchParams.set('page', String(pageNum));
 		return url.pathname + url.search;
+	}
+
+	function handleKeyUp(e: any) {
+		$table.setGlobalFilter(String(e?.target?.value));
 	}
 
 	// Pagination button classes
@@ -91,7 +127,17 @@
 </script>
 
 <div class="space-y-4">
-	<h1>Contacts</h1>
+	<div class="flex items-center justify-between">
+		<h1>Contacts</h1>
+		<pre>"globalFilter": "{$table.getState().globalFilter}"</pre>
+		<input
+			type="text"
+			placeholder="Search contacts..."
+			bind:value={globalFilter}
+			onkeyup={handleKeyUp}
+			class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+		/>
+	</div>
 
 	{#if data.error}
 		<div class="variant-soft-error alert">
@@ -115,12 +161,10 @@
 						{#each $table.getHeaderGroups() as headerGroup}
 							<tr>
 								{#each headerGroup.headers as header}
-									<th style="width: {header.getSize()}px">
-										{#if !header.isPlaceholder}
-											<div>
-												{header.column.columnDef.header || ''}
-											</div>
-										{/if}
+									<th>
+										<div>
+											{header.column.columnDef.header}
+										</div>
 									</th>
 								{/each}
 							</tr>
