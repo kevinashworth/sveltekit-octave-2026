@@ -20,7 +20,7 @@ export const ContactSchema = z.object({
 	slug: z.string(),
 	userId: z.string(),
 	createdAt: MongoDBDateSchema,
-	updatedAt: MongoDBDateSchema.optional(),
+	updatedAt: z.instanceof(Date).optional(),
 	offices: z.array(OfficeRefSchema).optional(),
 	projects: z.array(ProjectWithRoleSchema).optional(),
 	pastProjects: z.array(ProjectWithRoleSchema).optional(),
