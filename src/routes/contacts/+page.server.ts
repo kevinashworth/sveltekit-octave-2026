@@ -63,25 +63,32 @@ export async function load({ url }) {
 	const offset = (page - 1) * PAGE_SIZE;
 
 	try {
+		// Split search into individual terms and filter out empty strings
+		const searchTerms = search.trim().split(/\s+/).filter(Boolean);
+
 		// Build the base query
 		let query = supabase
 			.from('contacts')
 			.select('id, first_name, last_name, updated_at, the_address, address_string');
 
-		// If search term exists, filter by it
-		if (search) {
-			// Supabase full-text search across text fields
-			query = query.or(
-				`first_name.ilike.%${search}%,last_name.ilike.%${search}%,address_string.ilike.%${search}%`
-			);
+		// If search terms exist, filter by them (each term must match at least one field)
+		if (searchTerms.length > 0) {
+			// Apply each term as a separate OR filter across all searchable fields
+			for (const term of searchTerms) {
+				query = query.or(
+					`first_name.ilike.%${term}%,last_name.ilike.%${term}%,address_string.ilike.%${term}%`
+				);
+			}
 		}
 
 		// Get total count with search filter applied
 		const countQuery = supabase.from('contacts').select('id', { count: 'exact' });
-		if (search) {
-			countQuery.or(
-				`first_name.ilike.%${search}%,last_name.ilike.%${search}%,address_string.ilike.%${search}%`
-			);
+		if (searchTerms.length > 0) {
+			for (const term of searchTerms) {
+				countQuery.or(
+					`first_name.ilike.%${term}%,last_name.ilike.%${term}%,address_string.ilike.%${term}%`
+				);
+			}
 		}
 		const { count: totalCount, error: countError } = await countQuery;
 

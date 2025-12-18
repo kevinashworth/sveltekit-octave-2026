@@ -44,6 +44,7 @@
 		"@supabase/supabase-js": "2.88.0",
 		"@tanstack/match-sorter-utils": "8.19.4",
 		"@tanstack/svelte-table": "npm:tanstack-table-8-svelte-5@^0.1",
+		"debounce": "3.0.0",
 		"dotenv": "17.2.3"
 	}
 }

@@ -1,12 +1,15 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { ArrowLeftIcon, ArrowRightIcon } from '@lucide/svelte';
+	import { ArrowLeftIcon, ArrowRightIcon, CircleXIcon, SearchIcon } from '@lucide/svelte';
 	import { createSvelteTable, flexRender, getCoreRowModel } from '@tanstack/svelte-table';
 	import type { ColumnDef, TableOptions } from '@tanstack/svelte-table';
+	import debounce from 'debounce';
 	import { writable } from 'svelte/store';
 
-	import type { PageData } from './$types';
+	import { goto } from '$app/navigation';
 	import type { Contact } from '$lib/schemas';
+	import { getModifierKeyPrefix } from '$lib/utils/keyboard';
+
+	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 	$inspect('Page data:', data);
@@ -15,38 +18,33 @@
 	const pageSize = $derived(data.pageSize);
 	const totalCount = $derived(data.totalCount);
 	const paginationSettings = $derived(data.paginationSettings);
-	const searchQuery = $derived(data.search ?? '');
 
-	let searchInput = $state(searchQuery);
-	let debounceTimer: ReturnType<typeof setTimeout>;
+	const searchQuery = $derived(data.search ?? '');
+	const modifierKeyPrefix = getModifierKeyPrefix();
+	let searchInput = $state('');
+
+	// Sync searchInput with searchQuery when it changes
+	$effect(() => {
+		searchInput = searchQuery;
+	});
 	let searchInputElement: HTMLInputElement;
 
 	// Debounced search function
-	function performSearch() {
-		clearTimeout(debounceTimer);
-		debounceTimer = setTimeout(async () => {
-			const url = new URL(window.location.href);
-			if (searchInput) {
-				url.searchParams.set('search', searchInput);
-			} else {
-				url.searchParams.delete('search');
-			}
-			url.searchParams.set('page', '1');
-			await goto(url.pathname + url.search);
-			searchInputElement?.focus();
-		}, 300);
-	}
+	const performSearch = debounce(async () => {
+		const url = new URL(window.location.href);
+		if (searchInput) {
+			url.searchParams.set('search', searchInput);
+		} else {
+			url.searchParams.delete('search');
+		}
+		url.searchParams.set('page', '1');
+		await goto(url.pathname + url.search);
+		searchInputElement?.focus();
+	}, 300);
 
 	function clearSearch() {
 		searchInput = '';
-		clearTimeout(debounceTimer);
-		debounceTimer = setTimeout(async () => {
-			const url = new URL(window.location.href);
-			url.searchParams.delete('search');
-			url.searchParams.set('page', '1');
-			await goto(url.pathname + url.search);
-			searchInputElement?.focus();
-		}, 300);
+		performSearch();
 	}
 
 	function handleSearchKeydown(e: KeyboardEvent) {
@@ -55,6 +53,21 @@
 			searchInputElement?.select();
 		}
 	}
+
+	function handleGlobalKeydown(e: KeyboardEvent) {
+		// Cmd+/ or Ctrl+/ to focus search
+		if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+			e.preventDefault();
+			searchInputElement?.focus();
+		}
+	}
+
+	$effect(() => {
+		window.addEventListener('keydown', handleGlobalKeydown);
+		return () => {
+			window.removeEventListener('keydown', handleGlobalKeydown);
+		};
+	});
 
 	let columns: ColumnDef<Partial<Contact>>[] = [
 		{
@@ -86,7 +99,7 @@
 	];
 
 	let tableOptions = writable<TableOptions<Partial<Contact>>>({
-		data: contacts,
+		data: [],
 		columns,
 		getCoreRowModel: getCoreRowModel()
 	});
@@ -124,29 +137,35 @@
 	<div class="flex items-center justify-between gap-4">
 		<h1>Contacts</h1>
 		<div class="relative max-w-sm flex-1">
+			<div
+				class="pointer-events-none absolute top-1/2 right-3 left-3 -translate-y-1/2 text-gray-400"
+			>
+				<SearchIcon class="h-4 w-4" />
+			</div>
 			<input
-				type="text"
-				placeholder="Search contacts..."
-				bind:value={searchInput}
 				bind:this={searchInputElement}
+				bind:value={searchInput}
+				class="w-full rounded-md border border-gray-300 py-2 pr-12 pl-10 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
 				oninput={performSearch}
 				onkeydown={handleSearchKeydown}
-				class="w-full rounded-md border border-gray-300 px-3 py-2 pr-10 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+				placeholder="Search contacts..."
+				type="text"
 			/>
+			<div
+				class="pointer-events-none absolute top-1/2 right-3 flex -translate-y-1/2 items-center gap-1 text-xs text-gray-400"
+			>
+				{#if !searchInput}
+					<span>{modifierKeyPrefix}</span>
+					<span>/</span>
+				{/if}
+			</div>
 			{#if searchInput}
 				<button
+					class="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
 					onclick={clearSearch}
-					class="absolute top-1/2 right-2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
 					title="Clear search"
 				>
-					<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M6 18L18 6M6 6l12 12"
-						/>
-					</svg>
+					<CircleXIcon class="h-4 w-4" />
 				</button>
 			{/if}
 		</div>
