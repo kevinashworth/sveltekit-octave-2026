@@ -2,7 +2,7 @@ import { supabase } from '$lib/supabase';
 import { type Contact } from '$lib/schemas';
 import { z } from 'zod';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 20;
 
 // Define a schema for the data we get from Supabase (snake_case from DB)
 const DbContactSchema = z.object({
