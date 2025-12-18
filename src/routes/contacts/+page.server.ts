@@ -59,20 +59,36 @@ function transformContact(dbContact: z.infer<typeof DbContactSchema>): Partial<C
 
 export async function load({ url }) {
 	const page = parseInt(url.searchParams.get('page') ?? '1');
+	const search = url.searchParams.get('search')?.toLowerCase() ?? '';
 	const offset = (page - 1) * PAGE_SIZE;
 
 	try {
-		// Get total count
-		const { count: totalCount, error: countError } = await supabase
+		// Build the base query
+		let query = supabase
 			.from('contacts')
-			.select('id', { count: 'exact' });
+			.select('id, first_name, last_name, updated_at, the_address, address_string');
+
+		// If search term exists, filter by it
+		if (search) {
+			// Supabase full-text search across text fields
+			query = query.or(
+				`first_name.ilike.%${search}%,last_name.ilike.%${search}%,address_string.ilike.%${search}%`
+			);
+		}
+
+		// Get total count with search filter applied
+		const countQuery = supabase.from('contacts').select('id', { count: 'exact' });
+		if (search) {
+			countQuery.or(
+				`first_name.ilike.%${search}%,last_name.ilike.%${search}%,address_string.ilike.%${search}%`
+			);
+		}
+		const { count: totalCount, error: countError } = await countQuery;
 
 		if (countError) throw countError;
 
-		// Get paginated data
-		const { data: rawContacts, error: dataError } = await supabase
-			.from('contacts')
-			.select('id, first_name, last_name, updated_at, the_address, address_string')
+		// Get paginated data with search filter
+		const { data: rawContacts, error: dataError } = await query
 			.order('updated_at', { ascending: false })
 			.range(offset, offset + PAGE_SIZE - 1);
 
@@ -97,7 +113,8 @@ export async function load({ url }) {
 			totalCount: totalCount || 0,
 			pageSize: PAGE_SIZE,
 			currentPage: page,
-			paginationSettings
+			paginationSettings,
+			search: search
 		};
 	} catch (error) {
 		console.error('Error loading contacts:', error);
@@ -114,6 +131,7 @@ export async function load({ url }) {
 			pageSize: PAGE_SIZE,
 			currentPage: page,
 			paginationSettings,
+			search: search,
 			error: error instanceof Error ? error.message : 'Unknown error'
 		};
 	}

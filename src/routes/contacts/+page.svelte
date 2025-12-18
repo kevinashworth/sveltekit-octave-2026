@@ -1,13 +1,8 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { ArrowLeftIcon, ArrowRightIcon } from '@lucide/svelte';
-	import { rankItem } from '@tanstack/match-sorter-utils';
-	import {
-		createSvelteTable,
-		flexRender,
-		getCoreRowModel,
-		getFilteredRowModel
-	} from '@tanstack/svelte-table';
-	import type { ColumnDef, FilterFn, TableOptions } from '@tanstack/svelte-table';
+	import { createSvelteTable, flexRender, getCoreRowModel } from '@tanstack/svelte-table';
+	import type { ColumnDef, TableOptions } from '@tanstack/svelte-table';
 	import { writable } from 'svelte/store';
 
 	import type { PageData } from './$types';
@@ -20,43 +15,59 @@
 	const pageSize = $derived(data.pageSize);
 	const totalCount = $derived(data.totalCount);
 	const paginationSettings = $derived(data.paginationSettings);
+	const searchQuery = $derived(data.search ?? '');
 
-	let globalFilter = '';
+	let searchInput = $state(searchQuery);
+	let debounceTimer: ReturnType<typeof setTimeout>;
+	let searchInputElement: HTMLInputElement;
 
-	// see https://tanstack.com/table/latest/docs/framework/svelte/examples/filtering
-	const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
-		// If no search term, show all rows
-		if (!value) {
-			return true;
+	// Debounced search function
+	function performSearch() {
+		clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(async () => {
+			const url = new URL(window.location.href);
+			if (searchInput) {
+				url.searchParams.set('search', searchInput);
+			} else {
+				url.searchParams.delete('search');
+			}
+			url.searchParams.set('page', '1');
+			await goto(url.pathname + url.search);
+			searchInputElement?.focus();
+		}, 300);
+	}
+
+	function clearSearch() {
+		searchInput = '';
+		clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(async () => {
+			const url = new URL(window.location.href);
+			url.searchParams.delete('search');
+			url.searchParams.set('page', '1');
+			await goto(url.pathname + url.search);
+			searchInputElement?.focus();
+		}, 300);
+	}
+
+	function handleSearchKeydown(e: KeyboardEvent) {
+		if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
+			e.preventDefault();
+			searchInputElement?.select();
 		}
-
-		const itemValue = row.getValue(columnId);
-
-		// If column is empty but we're searching for something, don't match this column
-		if (itemValue == null || itemValue === '') {
-			return false;
-		}
-
-		const itemRank = rankItem(String(itemValue), value);
-		addMeta({ itemRank });
-		return itemRank.passed;
-	};
+	}
 
 	let columns: ColumnDef<Partial<Contact>>[] = [
 		{
 			accessorKey: 'firstName',
-			header: 'First Name',
-			filterFn: fuzzyFilter
+			header: 'First Name'
 		},
 		{
 			accessorKey: 'lastName',
-			header: 'Last Name',
-			filterFn: fuzzyFilter
+			header: 'Last Name'
 		},
 		{
 			accessorKey: 'addressString',
-			header: 'Address String',
-			filterFn: fuzzyFilter
+			header: 'Address String'
 		},
 		{
 			accessorKey: 'updatedAt',
@@ -70,16 +81,9 @@
 					month: 'short',
 					day: 'numeric'
 				});
-			},
-			filterFn: fuzzyFilter
+			}
 		}
 	];
-
-	// const table = createSvelteTable({
-	// 	data: contacts,
-	// 	columns: columnDefs,
-	// 	getCoreRowModel: getCoreRowModel()
-	// });
 
 	let tableOptions = writable<TableOptions<Partial<Contact>>>({
 		data: contacts,
@@ -94,29 +98,19 @@
 		tableOptions.set({
 			data: contacts,
 			columns,
-			// state: {
-			// 	globalFilter
-			// },
-			// onGlobalFilterChange: (updater) => {
-			// 	globalFilter = typeof updater === 'function' ? updater(globalFilter) : updater;
-			// },
-			filterFns: {
-				fuzzy: fuzzyFilter
-			},
-			getCoreRowModel: getCoreRowModel(),
-			getFilteredRowModel: getFilteredRowModel(),
-			globalFilterFn: 'fuzzy'
+			getCoreRowModel: getCoreRowModel()
 		});
 	});
 
-	function getPageUrl(pageNum: number): string {
+	function getPageUrl(pageNum: number, search?: string): string {
 		const url = new URL(window.location.href);
 		url.searchParams.set('page', String(pageNum));
+		if (search) {
+			url.searchParams.set('search', search);
+		} else {
+			url.searchParams.delete('search');
+		}
 		return url.pathname + url.search;
-	}
-
-	function handleKeyUp(e: any) {
-		$table.setGlobalFilter(String(e?.target?.value));
 	}
 
 	// Pagination button classes
@@ -127,16 +121,35 @@
 </script>
 
 <div class="space-y-4">
-	<div class="flex items-center justify-between">
+	<div class="flex items-center justify-between gap-4">
 		<h1>Contacts</h1>
-		<pre>"globalFilter": "{$table.getState().globalFilter}"</pre>
-		<input
-			type="text"
-			placeholder="Search contacts..."
-			bind:value={globalFilter}
-			onkeyup={handleKeyUp}
-			class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-		/>
+		<div class="relative max-w-sm flex-1">
+			<input
+				type="text"
+				placeholder="Search contacts..."
+				bind:value={searchInput}
+				bind:this={searchInputElement}
+				oninput={performSearch}
+				onkeydown={handleSearchKeydown}
+				class="w-full rounded-md border border-gray-300 px-3 py-2 pr-10 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+			/>
+			{#if searchInput}
+				<button
+					onclick={clearSearch}
+					class="absolute top-1/2 right-2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+					title="Clear search"
+				>
+					<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M6 18L18 6M6 6l12 12"
+						/>
+					</svg>
+				</button>
+			{/if}
+		</div>
 	</div>
 
 	{#if data.error}
@@ -199,7 +212,7 @@
 						<!-- Previous button -->
 						{#if paginationSettings.page > 1}
 							<a
-								href={getPageUrl(paginationSettings.page - 1)}
+								href={getPageUrl(paginationSettings.page - 1, searchQuery)}
 								data-sveltekit-prefetch
 								class={inactiveButtonClasses}
 								title="Previous page"
@@ -221,7 +234,7 @@
 									</button>
 								{:else if Math.abs(pageNum - paginationSettings.page) <= 2 || pageNum === 1 || pageNum === paginationSettings.amount}
 									<a
-										href={getPageUrl(pageNum)}
+										href={getPageUrl(pageNum, searchQuery)}
 										data-sveltekit-prefetch
 										class={inactiveButtonClasses}
 									>
@@ -236,7 +249,7 @@
 						<!-- Next button -->
 						{#if paginationSettings.page < paginationSettings.amount}
 							<a
-								href={getPageUrl(paginationSettings.page + 1)}
+								href={getPageUrl(paginationSettings.page + 1, searchQuery)}
 								data-sveltekit-prefetch
 								class={inactiveButtonClasses}
 								title="Next page"
