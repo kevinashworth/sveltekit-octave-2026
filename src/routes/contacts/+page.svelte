@@ -6,10 +6,13 @@
 	import { writable } from 'svelte/store';
 
 	import { goto } from '$app/navigation';
-	import type { Contact } from '$lib/schemas';
 	import { getModifierKeyPrefix } from '$lib/utils/keyboard';
+	import type { Database } from '$lib/database.types';
 
 	import type { PageData } from './$types';
+
+	type DbContact = Database['public']['Tables']['contacts']['Row'];
+	type PartialDbContact = Partial<DbContact>;
 
 	let { data }: { data: PageData } = $props();
 	$inspect('Page data:', data);
@@ -69,21 +72,21 @@
 		};
 	});
 
-	let columns: ColumnDef<Partial<Contact>>[] = [
+	const columns: ColumnDef<PartialDbContact>[] = [
 		{
-			accessorKey: 'firstName',
+			accessorKey: 'first_name',
 			header: 'First Name'
 		},
 		{
-			accessorKey: 'lastName',
+			accessorKey: 'last_name',
 			header: 'Last Name'
 		},
 		{
-			accessorKey: 'addressString',
-			header: 'Address String'
+			accessorKey: 'address_string',
+			header: 'Address'
 		},
 		{
-			accessorKey: 'updatedAt',
+			accessorKey: 'updated_at',
 			header: 'Last Updated',
 			cell: (info) => {
 				const date = info.getValue<Date | undefined>();
@@ -98,7 +101,7 @@
 		}
 	];
 
-	let tableOptions = writable<TableOptions<Partial<Contact>>>({
+	let tableOptions = writable<TableOptions<PartialDbContact>>({
 		data: [],
 		columns,
 		getCoreRowModel: getCoreRowModel()
