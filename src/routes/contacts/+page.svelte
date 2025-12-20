@@ -1,21 +1,36 @@
 <script lang="ts">
-	import { ArrowLeftIcon, ArrowRightIcon, CircleXIcon, SearchIcon } from '@lucide/svelte';
-	import { createSvelteTable, flexRender, getCoreRowModel } from '@tanstack/svelte-table';
-	import type { ColumnDef, TableOptions } from '@tanstack/svelte-table';
+	import {
+		ArrowDownAZIcon,
+		ArrowDownIcon,
+		ArrowLeftIcon,
+		ArrowRightIcon,
+		ArrowUpIcon,
+		ArrowUpZAIcon,
+		CircleXIcon,
+		SearchIcon
+	} from '@lucide/svelte';
+	import type { ColumnDef, OnChangeFn, SortingState, TableOptions } from '@tanstack/svelte-table';
+	import {
+		createSvelteTable,
+		flexRender,
+		getCoreRowModel,
+		getSortedRowModel
+	} from '@tanstack/svelte-table';
 	import debounce from 'debounce';
 	import { writable } from 'svelte/store';
 
+	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
-	import { getModifierKeyPrefix } from '$lib/utils/keyboard';
+	import { navigating, page } from '$app/state';
+	import { ALLOWED_PAGE_SIZES, DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
 	import type { Database } from '$lib/database.types';
-
+	import { getModifierKeyPrefix } from '$lib/utils/keyboard';
 	import type { PageData } from './$types';
 
 	type DbContact = Database['public']['Tables']['contacts']['Row'];
 	type PartialDbContact = Partial<DbContact>;
 
 	let { data }: { data: PageData } = $props();
-	$inspect('Page data:', data);
 	const contacts = $derived(data.contacts);
 	const length = $derived(data.contacts.length);
 	const pageSize = $derived(data.pageSize);
@@ -26,24 +41,65 @@
 	const modifierKeyPrefix = getModifierKeyPrefix();
 	let searchInput = $state('');
 
+	let sorting = $state<SortingState>([{ id: 'updated_at', desc: true }]);
+
+	const setSorting: OnChangeFn<SortingState> = (updater) => {
+		if (updater instanceof Function) {
+			sorting = updater(sorting);
+		} else {
+			sorting = updater;
+		}
+	};
+
+	// Track if we're loading from a search or page size change
+	const changeInProgress = $derived(
+		!!navigating &&
+			(navigating.from?.url.searchParams.get('search') !==
+				navigating.to?.url.searchParams.get('search') ||
+				navigating.from?.url.searchParams.get('pageSize') !==
+					navigating.to?.url.searchParams.get('pageSize'))
+	);
+
 	// Sync searchInput with searchQuery when it changes
 	$effect(() => {
 		searchInput = searchQuery;
 	});
 	let searchInputElement: HTMLInputElement;
 
-	// Debounced search function
-	const performSearch = debounce(async () => {
-		const url = new URL(window.location.href);
-		if (searchInput) {
-			url.searchParams.set('search', searchInput);
-		} else {
-			url.searchParams.delete('search');
+	/**
+	 * Centralized navigation helper to maintain search params and page size
+	 */
+	async function navigate(
+		params: { page?: number; search?: string; pageSize?: number },
+		options: { keepFocus?: boolean } = {}
+	) {
+		const searchParams = new URLSearchParams(page.url.searchParams);
+
+		if (params.search !== undefined) {
+			if (params.search) searchParams.set('search', params.search);
+			else searchParams.delete('search');
 		}
-		url.searchParams.set('page', '1');
-		await goto(url.pathname + url.search);
-		searchInputElement?.focus();
-	}, 300);
+
+		if (params.pageSize !== undefined) {
+			if (params.pageSize !== DEFAULT_PAGE_SIZE)
+				searchParams.set('pageSize', String(params.pageSize));
+			else searchParams.delete('pageSize');
+		}
+
+		if (params.page !== undefined) {
+			searchParams.set('page', String(params.page));
+		}
+
+		await goto(`?${searchParams.toString()}`, options);
+	}
+
+	// Immediate search function
+	async function executeSearch() {
+		await navigate({ search: searchInput, page: 1 }, { keepFocus: true });
+	}
+
+	// Debounced search function
+	const performSearch = debounce(executeSearch, 300);
 
 	function clearSearch() {
 		searchInput = '';
@@ -54,6 +110,10 @@
 		if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
 			e.preventDefault();
 			searchInputElement?.select();
+		} else if (e.key === 'Enter') {
+			e.preventDefault();
+			performSearch.clear();
+			executeSearch();
 		}
 	}
 
@@ -66,6 +126,8 @@
 	}
 
 	$effect(() => {
+		if (!browser) return;
+
 		window.addEventListener('keydown', handleGlobalKeydown);
 		return () => {
 			window.removeEventListener('keydown', handleGlobalKeydown);
@@ -75,24 +137,27 @@
 	const columns: ColumnDef<PartialDbContact>[] = [
 		{
 			accessorKey: 'first_name',
-			header: 'First Name'
+			header: 'First Name',
+			sortingFn: 'alphanumeric'
 		},
 		{
 			accessorKey: 'last_name',
-			header: 'Last Name'
+			header: 'Last Name',
+			sortingFn: 'alphanumeric'
 		},
 		{
 			accessorKey: 'address_string',
-			header: 'Address'
+			header: 'Address',
+			sortingFn: 'alphanumeric'
 		},
 		{
 			accessorKey: 'updated_at',
 			header: 'Last Updated',
+			sortingFn: 'datetime',
 			cell: (info) => {
-				const date = info.getValue<Date | undefined>();
+				const date = info.getValue<string | null>();
 				if (!date) return 'N/A';
-				const dateObj = date instanceof Date ? date : new Date(date);
-				return dateObj.toLocaleDateString('en-US', {
+				return new Date(date).toLocaleDateString('en-US', {
 					year: 'numeric',
 					month: 'short',
 					day: 'numeric'
@@ -101,39 +166,42 @@
 		}
 	];
 
-	let tableOptions = writable<TableOptions<PartialDbContact>>({
-		data: [],
-		columns,
-		getCoreRowModel: getCoreRowModel()
-	});
-
-	const table = createSvelteTable(tableOptions);
-
-	// Update table options whenever contacts change
-	$effect(() => {
-		tableOptions.set({
+	const tableOptions = $derived.by(() => {
+		return writable<TableOptions<PartialDbContact>>({
 			data: contacts,
 			columns,
-			getCoreRowModel: getCoreRowModel()
+			state: {
+				sorting
+			},
+			getCoreRowModel: getCoreRowModel(),
+			getSortedRowModel: getSortedRowModel(),
+			onSortingChange: setSorting
 		});
 	});
 
+	const table = $derived(createSvelteTable(tableOptions));
+
 	function getPageUrl(pageNum: number, search?: string): string {
-		const url = new URL(window.location.href);
-		url.searchParams.set('page', String(pageNum));
-		if (search) {
-			url.searchParams.set('search', search);
-		} else {
-			url.searchParams.delete('search');
-		}
-		return url.pathname + url.search;
+		const params = new URLSearchParams();
+		params.set('page', String(pageNum));
+
+		if (search) params.set('search', search);
+
+		if (pageSize !== DEFAULT_PAGE_SIZE) params.set('pageSize', String(pageSize));
+
+		return `/contacts?${params.toString()}`;
 	}
 
-	// Pagination button classes
-	const baseButtonClasses = 'inline-flex h-6 items-center justify-center rounded px-2 text-sm';
-	const activeButtonClasses = `${baseButtonClasses} bg-blue-600 text-white font-bold cursor-default`;
-	const inactiveButtonClasses = `${baseButtonClasses} bg-gray-200 transition-colors hover:bg-gray-300`;
-	const disabledButtonClasses = `${baseButtonClasses} bg-gray-200 text-gray-600 cursor-not-allowed`;
+	async function handlePageSizeChange(e: Event) {
+		const select = e.target as HTMLSelectElement;
+		const newPageSize = parseInt(select.value);
+		// Calculate the index of the first contact on the current page
+		const firstContactIndex = (paginationSettings.page - 1) * pageSize;
+		// Calculate which page in the new size would contain that contact
+		const newPage = Math.floor(firstContactIndex / newPageSize) + 1;
+
+		await navigate({ pageSize: newPageSize, page: newPage });
+	}
 </script>
 
 <div class="space-y-4">
@@ -143,7 +211,13 @@
 			<div
 				class="pointer-events-none absolute top-1/2 right-3 left-3 -translate-y-1/2 text-gray-400"
 			>
-				<SearchIcon class="h-4 w-4" />
+				{#if changeInProgress}
+					<div
+						class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"
+					></div>
+				{:else}
+					<SearchIcon class="h-4 w-4" />
+				{/if}
 			</div>
 			<input
 				bind:this={searchInputElement}
@@ -190,59 +264,133 @@
 	{:else}
 		<div class="space-y-4">
 			<!-- Table -->
-			<div class="table-container">
-				<table class="table-hover table">
+			<div class="relative table-wrap rounded-md border border-surface-200-800">
+				<!-- Loading overlay -->
+				{#if changeInProgress}
+					<div
+						class="absolute inset-0 z-10 bg-white/50 backdrop-blur-[0.5px] transition-opacity"
+					></div>
+				{/if}
+				<table class="table">
 					<thead>
-						{#each $table.getHeaderGroups() as headerGroup}
+						{#if browser}
+							{#each $table.getHeaderGroups() as headerGroup}
+								<tr>
+									{#each headerGroup.headers as header}
+										{@const canSort = header.column.getCanSort()}
+										{@const sortState = header.column.getIsSorted()}
+										{@const Component = flexRender(
+											header.column.columnDef.header,
+											header.getContext()
+										)}
+										{@const isDateColumn = header.column.columnDef.sortingFn === 'datetime'}
+										<th class="group">
+											<button
+												type="button"
+												class:cursor-pointer={canSort}
+												class:select-none={canSort}
+												onclick={header.column.getToggleSortingHandler()}
+												class="inline-flex items-center font-semibold"
+												><Component />
+												{#if isDateColumn}
+													{#if sortState === 'asc'}
+														<ArrowUpIcon class="ml-1 inline h-6 w-6 text-secondary-500" />
+													{:else if sortState === 'desc'}
+														<ArrowDownIcon class="ml-1 inline h-6 w-6 text-secondary-500" />
+													{:else if canSort}
+														<ArrowDownIcon
+															class="ml-1 inline h-6 w-6 opacity-0 group-hover:opacity-30"
+														/>
+													{/if}
+												{:else if sortState === 'asc'}
+													<ArrowDownAZIcon class="ml-1 inline h-6 w-6 text-secondary-500" />
+												{:else if sortState === 'desc'}
+													<ArrowUpZAIcon class="ml-1 inline h-6 w-6 text-secondary-500" />
+												{:else if canSort}
+													<ArrowDownAZIcon
+														class="ml-1 inline h-6 w-6 opacity-0 group-hover:opacity-30"
+													/>
+												{/if}
+											</button>
+										</th>
+									{/each}
+								</tr>
+							{/each}
+						{:else}
 							<tr>
-								{#each headerGroup.headers as header}
-									<th>
-										<div>
-											{header.column.columnDef.header}
-										</div>
-									</th>
-								{/each}
+								<th>First Name</th>
+								<th>Last Name</th>
+								<th>Address</th>
+								<th>Last Updated</th>
 							</tr>
-						{/each}
+						{/if}
 					</thead>
 					<tbody>
-						{#each $table.getRowModel().rows as row}
-							<tr>
-								{#each row.getVisibleCells() as cell}
-									{@const Component = flexRender(cell.column.columnDef.cell, cell.getContext())}
+						{#if browser}
+							{#each $table.getRowModel().rows as row, i}
+								<tr class:bg-surface-100={i % 2 === 0}>
+									{#each row.getVisibleCells() as cell}
+										{@const Component = flexRender(cell.column.columnDef.cell, cell.getContext())}
+										<td>
+											<Component />
+										</td>
+									{/each}
+								</tr>
+							{/each}
+						{:else}
+							{#each contacts as contact, i}
+								<tr class:bg-surface-100={i % 2 === 0}>
+									<td>{contact.first_name}</td>
+									<td>{contact.last_name}</td>
+									<td>{contact.address_string}</td>
 									<td>
-										<Component />
+										{contact.updated_at
+											? new Date(contact.updated_at).toLocaleDateString('en-US', {
+													year: 'numeric',
+													month: 'short',
+													day: 'numeric'
+												})
+											: 'N/A'}
 									</td>
-								{/each}
-							</tr>
-						{/each}
+								</tr>
+							{/each}
+						{/if}
 					</tbody>
 				</table>
 			</div>
 
-			<!-- Pagination -->
-			<div class="flex items-center justify-between">
-				<div class="text-sm text-surface-600">
+			<div class="flex w-full items-center justify-between gap-4">
+				<!-- Page Size  -->
+				<div class="text-sm whitespace-nowrap text-surface-600-400">
 					Showing {(paginationSettings.page - 1) * pageSize + 1} to {Math.min(
 						paginationSettings.page * pageSize,
 						totalCount
 					)} of {totalCount} contacts
 				</div>
+				<div class="flex items-center gap-2">
+					<span class="text-sm text-surface-600-400">Show</span>
+					<select value={pageSize} onchange={handlePageSizeChange} class="select w-fit text-sm">
+						{#each ALLOWED_PAGE_SIZES as size}
+							<option value={size} title="show {size} contacts per page">{size}</option>
+						{/each}
+					</select>
+				</div>
 
-				<div class="rounded border border-gray-400 p-2">
-					<div class="flex items-center gap-2">
+				<!-- Pagination -->
+				<div class="rounded-container preset-outlined-surface-200-800 p-2">
+					<div class="flex gap-2">
 						<!-- Previous button -->
 						{#if paginationSettings.page > 1}
 							<a
 								href={getPageUrl(paginationSettings.page - 1, searchQuery)}
 								data-sveltekit-prefetch
-								class={inactiveButtonClasses}
+								class="btn preset-tonal btn-sm"
 								title="Previous page"
 							>
 								<ArrowLeftIcon class="size-4" />
 							</a>
 						{:else}
-							<button class={disabledButtonClasses} disabled>
+							<button class="btn preset-tonal btn-sm opacity-50" disabled>
 								<ArrowLeftIcon class="size-4" />
 							</button>
 						{/if}
@@ -251,19 +399,19 @@
 						<div class="flex gap-1">
 							{#each Array.from({ length: paginationSettings.amount }, (_, i) => i + 1) as pageNum}
 								{#if pageNum === paginationSettings.page}
-									<button class={activeButtonClasses} disabled>
+									<button class="btn preset-filled btn-sm" disabled>
 										{pageNum}
 									</button>
 								{:else if Math.abs(pageNum - paginationSettings.page) <= 2 || pageNum === 1 || pageNum === paginationSettings.amount}
 									<a
 										href={getPageUrl(pageNum, searchQuery)}
 										data-sveltekit-prefetch
-										class={inactiveButtonClasses}
+										class="btn preset-tonal btn-sm"
 									>
 										{pageNum}
 									</a>
 								{:else if pageNum === 2 || pageNum === paginationSettings.amount - 1}
-									<span class="inline-flex h-6 items-center justify-center px-2 text-sm">...</span>
+									<span class="btn preset-tonal btn-sm">...</span>
 								{/if}
 							{/each}
 						</div>
@@ -273,19 +421,20 @@
 							<a
 								href={getPageUrl(paginationSettings.page + 1, searchQuery)}
 								data-sveltekit-prefetch
-								class={inactiveButtonClasses}
+								class="btn preset-tonal btn-sm"
 								title="Next page"
 							>
 								<ArrowRightIcon class="size-4" />
 							</a>
 						{:else}
-							<button class={disabledButtonClasses} disabled>
+							<button class="btn preset-tonal btn-sm opacity-50" disabled>
 								<ArrowRightIcon class="size-4" />
 							</button>
 						{/if}
 					</div>
 				</div>
 			</div>
+			<!-- <pre>{JSON.stringify($table.getState().sorting, null, 2)}</pre> -->
 		</div>
 	{/if}
 </div>
