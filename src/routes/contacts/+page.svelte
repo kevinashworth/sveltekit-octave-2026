@@ -271,9 +271,10 @@
 						class="absolute inset-0 z-10 bg-white/50 backdrop-blur-[0.5px] transition-opacity"
 					></div>
 				{/if}
-				<table class="table">
-					<thead>
-						{#if browser}
+				{#if browser && table}
+					<!-- Client-side rendered table with TanStack Table -->
+					<table class="table">
+						<thead>
 							{#each $table.getHeaderGroups() as headerGroup}
 								<tr>
 									{#each headerGroup.headers as header}
@@ -316,17 +317,8 @@
 									{/each}
 								</tr>
 							{/each}
-						{:else}
-							<tr>
-								<th>First Name</th>
-								<th>Last Name</th>
-								<th>Address</th>
-								<th>Last Updated</th>
-							</tr>
-						{/if}
-					</thead>
-					<tbody>
-						{#if browser}
+						</thead>
+						<tbody>
 							{#each $table.getRowModel().rows as row, i}
 								<tr class:bg-surface-100={i % 2 === 0}>
 									{#each row.getVisibleCells() as cell}
@@ -337,7 +329,20 @@
 									{/each}
 								</tr>
 							{/each}
-						{:else}
+						</tbody>
+					</table>
+				{:else}
+					<!-- Server-side rendered table (fallback for SSR or when browser is false) -->
+					<table class="table-hover table w-full">
+						<thead>
+							<tr>
+								<th>First Name</th>
+								<th>Last Name</th>
+								<th>Address</th>
+								<th>Updated</th>
+							</tr>
+						</thead>
+						<tbody>
 							{#each contacts as contact, i}
 								<tr class:bg-surface-100={i % 2 === 0}>
 									<td>{contact.first_name}</td>
@@ -354,9 +359,9 @@
 									</td>
 								</tr>
 							{/each}
-						{/if}
-					</tbody>
-				</table>
+						</tbody>
+					</table>
+				{/if}
 			</div>
 
 			<div class="flex w-full items-center justify-between gap-4">
