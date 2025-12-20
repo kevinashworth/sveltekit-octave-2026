@@ -1,6 +1,10 @@
 {
+	"chat.fontSize": 15,
+	"editor.codeActionsOnSave": {
+		"source.organizeImports": "always",
+		"source.sortImports": "always"
+	},
 	"files.associations": {
 		"*.css": "tailwindcss"
-	},
-	"chat.fontSize": 15
+	}
 }
