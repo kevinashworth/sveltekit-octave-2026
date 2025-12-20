@@ -1,6 +1,6 @@
+import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
-import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 
 // const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL || '';
 // const SUPABASE_KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || '';

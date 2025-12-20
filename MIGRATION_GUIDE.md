@@ -168,8 +168,8 @@ import { supabase } from '$lib/supabase'; // Create this file
 
 // Instead of: import { offices } from '$lib/data/offices.json'
 const { data: offices, error } = await supabase
-  .from('offices')
-  .select('*, office_addresses(*, addresses(*)), office_contacts(*), office_projects(*)');
+	.from('offices')
+	.select('*, office_addresses(*, addresses(*)), office_contacts(*), office_projects(*)');
 ```
 
 More information: [Supabase JavaScript Client](https://supabase.com/docs/reference/javascript/introduction)
