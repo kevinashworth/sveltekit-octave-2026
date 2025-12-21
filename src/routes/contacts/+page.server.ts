@@ -46,8 +46,6 @@ export async function load({ url }) {
 		const maxPages = Math.ceil(totalCount / pageSize);
 		const clampedPage = Math.max(1, Math.min(page, maxPages || 1));
 
-		console.log({ clampedPage, requestedPage, pageSize, requestedPageSize });
-
 		// Redirect if page or pageSize were invalid (do this after try-catch to avoid error catching)
 		if (clampedPage !== requestedPage || pageSize !== requestedPageSize) {
 			const params = new URLSearchParams();

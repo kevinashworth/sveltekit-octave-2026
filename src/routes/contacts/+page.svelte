@@ -21,7 +21,7 @@
 
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
-	import { navigating, page } from '$app/state';
+	import { navigating } from '$app/state';
 	import { ALLOWED_PAGE_SIZES, DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
 	import type { Database } from '$lib/database.types';
 	import { getModifierKeyPrefix } from '$lib/utils/keyboard';
@@ -67,35 +67,42 @@
 	let searchInputElement: HTMLInputElement;
 
 	/**
-	 * Centralized navigation helper to maintain search params and page size
+	 * Build a URL with the given search parameters
 	 */
-	async function navigate(
+	function urlFor(params: { page?: number; search?: string; pageSize?: number }): string {
+		const searchParams = new URLSearchParams();
+
+		// Use provided search or fallback to current search
+		const searchValue = params.search !== undefined ? params.search : searchQuery;
+		if (searchValue) searchParams.set('search', searchValue);
+
+		// Use provided page or fallback to current page
+		const pageValue = params.page !== undefined ? params.page : paginationSettings.page;
+		searchParams.set('page', String(pageValue));
+
+		// Use provided pageSize or fallback to current pageSize
+		const pageSizeValue = params.pageSize !== undefined ? params.pageSize : pageSize;
+		if (pageSizeValue !== DEFAULT_PAGE_SIZE) {
+			searchParams.set('pageSize', String(pageSizeValue));
+		}
+
+		return `/contacts?${searchParams.toString()}`;
+	}
+
+	/**
+	 * Navigate to a URL with the given parameters
+	 */
+	async function navigateTo(
 		params: { page?: number; search?: string; pageSize?: number },
 		options: { keepFocus?: boolean } = {}
 	) {
-		const searchParams = new URLSearchParams(page.url.searchParams);
-
-		if (params.search !== undefined) {
-			if (params.search) searchParams.set('search', params.search);
-			else searchParams.delete('search');
-		}
-
-		if (params.pageSize !== undefined) {
-			if (params.pageSize !== DEFAULT_PAGE_SIZE)
-				searchParams.set('pageSize', String(params.pageSize));
-			else searchParams.delete('pageSize');
-		}
-
-		if (params.page !== undefined) {
-			searchParams.set('page', String(params.page));
-		}
-
-		await goto(`?${searchParams.toString()}`, options);
+		const url = urlFor(params);
+		await goto(url, options);
 	}
 
 	// Immediate search function
 	async function executeSearch() {
-		await navigate({ search: searchInput, page: 1 }, { keepFocus: true });
+		await navigateTo({ search: searchInput, page: 1 }, { keepFocus: true });
 	}
 
 	// Debounced search function
@@ -181,17 +188,6 @@
 
 	const table = $derived(createSvelteTable(tableOptions));
 
-	function getPageUrl(pageNum: number, search?: string): string {
-		const params = new URLSearchParams();
-		params.set('page', String(pageNum));
-
-		if (search) params.set('search', search);
-
-		if (pageSize !== DEFAULT_PAGE_SIZE) params.set('pageSize', String(pageSize));
-
-		return `/contacts?${params.toString()}`;
-	}
-
 	async function handlePageSizeChange(e: Event) {
 		const select = e.target as HTMLSelectElement;
 		const newPageSize = parseInt(select.value);
@@ -200,7 +196,7 @@
 		// Calculate which page in the new size would contain that contact
 		const newPage = Math.floor(firstContactIndex / newPageSize) + 1;
 
-		await navigate({ pageSize: newPageSize, page: newPage });
+		await navigateTo({ pageSize: newPageSize, page: newPage });
 	}
 </script>
 
@@ -387,8 +383,7 @@
 						<!-- Previous button -->
 						{#if paginationSettings.page > 1}
 							<a
-								href={getPageUrl(paginationSettings.page - 1, searchQuery)}
-								data-sveltekit-prefetch
+								href={urlFor({ page: paginationSettings.page - 1 })}
 								class="btn preset-tonal btn-sm"
 								title="Previous page"
 							>
@@ -408,11 +403,7 @@
 										{pageNum}
 									</button>
 								{:else if Math.abs(pageNum - paginationSettings.page) <= 2 || pageNum === 1 || pageNum === paginationSettings.amount}
-									<a
-										href={getPageUrl(pageNum, searchQuery)}
-										data-sveltekit-prefetch
-										class="btn preset-tonal btn-sm"
-									>
+									<a href={urlFor({ page: pageNum })} class="btn preset-tonal btn-sm">
 										{pageNum}
 									</a>
 								{:else if pageNum === 2 || pageNum === paginationSettings.amount - 1}
@@ -424,8 +415,7 @@
 						<!-- Next button -->
 						{#if paginationSettings.page < paginationSettings.amount}
 							<a
-								href={getPageUrl(paginationSettings.page + 1, searchQuery)}
-								data-sveltekit-prefetch
+								href={urlFor({ page: paginationSettings.page + 1 })}
 								class="btn preset-tonal btn-sm"
 								title="Next page"
 							>
