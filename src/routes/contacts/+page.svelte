@@ -2,8 +2,6 @@
 	import {
 		ArrowDownAZIcon,
 		ArrowDownIcon,
-		ArrowLeftIcon,
-		ArrowRightIcon,
 		ArrowUpIcon,
 		ArrowUpZAIcon,
 		CircleXIcon,
@@ -17,13 +15,17 @@
 		getSortedRowModel
 	} from '@tanstack/svelte-table';
 	import debounce from 'debounce';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { writable } from 'svelte/store';
 
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { navigating } from '$app/state';
-	import { ALLOWED_PAGE_SIZES, DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
+	import TablePaginationControls from '$lib/components/TablePaginationControls.svelte';
+	import { DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
 	import type { Database } from '$lib/database.types';
+	import { getPaginationState } from '$lib/stores/pagination-state.svelte';
+	import { formatDate } from '$lib/utils/date';
 	import { getModifierKeyPrefix } from '$lib/utils/keyboard';
 	import type { PageData } from './$types';
 
@@ -33,13 +35,15 @@
 	let { data }: { data: PageData } = $props();
 	const contacts = $derived(data.contacts);
 	const length = $derived(data.contacts.length);
-	const pageSize = $derived(data.pageSize);
 	const totalCount = $derived(data.totalCount);
 	const paginationSettings = $derived(data.paginationSettings);
 
+	const paginationState = getPaginationState();
+	const pageSize = paginationState.pageSize;
+
 	const searchQuery = $derived(data.search ?? '');
 	const modifierKeyPrefix = getModifierKeyPrefix();
-	let searchInput = $state('');
+	let searchInput = $derived(searchQuery);
 
 	let sorting = $state<SortingState>([{ id: 'updated_at', desc: true }]);
 
@@ -60,17 +64,13 @@
 					navigating.to?.url.searchParams.get('pageSize'))
 	);
 
-	// Sync searchInput with searchQuery when it changes
-	$effect(() => {
-		searchInput = searchQuery;
-	});
 	let searchInputElement: HTMLInputElement;
 
 	/**
 	 * Build a URL with the given search parameters
 	 */
 	function urlFor(params: { page?: number; search?: string; pageSize?: number }): string {
-		const searchParams = new URLSearchParams();
+		const searchParams = new SvelteURLSearchParams();
 
 		// Use provided search or fallback to current search
 		const searchValue = params.search !== undefined ? params.search : searchQuery;
@@ -97,7 +97,7 @@
 		options: { keepFocus?: boolean } = {}
 	) {
 		const url = urlFor(params);
-		await goto(url, options);
+		await goto(url, options); // eslint-disable-line svelte/no-navigation-without-resolve
 	}
 
 	// Immediate search function
@@ -161,15 +161,7 @@
 			accessorKey: 'updated_at',
 			header: 'Last Updated',
 			sortingFn: 'datetime',
-			cell: (info) => {
-				const date = info.getValue<string | null>();
-				if (!date) return 'N/A';
-				return new Date(date).toLocaleDateString('en-US', {
-					year: 'numeric',
-					month: 'short',
-					day: 'numeric'
-				});
-			}
+			cell: (info) => formatDate(info.getValue<string | null>())
 		}
 	];
 
@@ -187,17 +179,6 @@
 	});
 
 	const table = $derived(createSvelteTable(tableOptions));
-
-	async function handlePageSizeChange(e: Event) {
-		const select = e.target as HTMLSelectElement;
-		const newPageSize = parseInt(select.value);
-		// Calculate the index of the first contact on the current page
-		const firstContactIndex = (paginationSettings.page - 1) * pageSize;
-		// Calculate which page in the new size would contain that contact
-		const newPage = Math.floor(firstContactIndex / newPageSize) + 1;
-
-		await navigateTo({ pageSize: newPageSize, page: newPage });
-	}
 </script>
 
 <div class="space-y-4">
@@ -271,9 +252,9 @@
 					<!-- Client-side rendered table with TanStack Table -->
 					<table class="table">
 						<thead>
-							{#each $table.getHeaderGroups() as headerGroup}
+							{#each $table.getHeaderGroups() as headerGroup (headerGroup.id)}
 								<tr>
-									{#each headerGroup.headers as header}
+									{#each headerGroup.headers as header (header.id)}
 										{@const canSort = header.column.getCanSort()}
 										{@const sortState = header.column.getIsSorted()}
 										{@const Component = flexRender(
@@ -315,9 +296,9 @@
 							{/each}
 						</thead>
 						<tbody>
-							{#each $table.getRowModel().rows as row, i}
+							{#each $table.getRowModel().rows as row, i (row.id)}
 								<tr class:bg-surface-100={i % 2 === 0}>
-									{#each row.getVisibleCells() as cell}
+									{#each row.getVisibleCells() as cell (cell.id)}
 										{@const Component = flexRender(cell.column.columnDef.cell, cell.getContext())}
 										<td>
 											<Component />
@@ -339,7 +320,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each contacts as contact, i}
+							{#each contacts as contact, i (contact.id)}
 								<tr class:bg-surface-100={i % 2 === 0}>
 									<td>{contact.first_name}</td>
 									<td>{contact.last_name}</td>
@@ -360,75 +341,20 @@
 				{/if}
 			</div>
 
-			<div class="flex w-full items-center justify-between gap-4">
-				<!-- Page Size  -->
-				<div class="text-sm whitespace-nowrap text-surface-600-400">
-					Showing {(paginationSettings.page - 1) * pageSize + 1} to {Math.min(
-						paginationSettings.page * pageSize,
-						totalCount
-					)} of {totalCount} contacts
-				</div>
-				<div class="flex items-center gap-2">
-					<span class="text-sm text-surface-600-400">Show</span>
-					<select value={pageSize} onchange={handlePageSizeChange} class="select w-fit text-sm">
-						{#each ALLOWED_PAGE_SIZES as size}
-							<option value={size} title="show {size} contacts per page">{size}</option>
-						{/each}
-					</select>
-				</div>
-
-				<!-- Pagination -->
-				<div class="rounded-container preset-outlined-surface-200-800 p-2">
-					<div class="flex gap-2">
-						<!-- Previous button -->
-						{#if paginationSettings.page > 1}
-							<a
-								href={urlFor({ page: paginationSettings.page - 1 })}
-								class="btn preset-tonal btn-sm"
-								title="Previous page"
-							>
-								<ArrowLeftIcon class="size-4" />
-							</a>
-						{:else}
-							<button class="btn preset-tonal btn-sm opacity-50" disabled>
-								<ArrowLeftIcon class="size-4" />
-							</button>
-						{/if}
-
-						<!-- Page numbers -->
-						<div class="flex gap-1">
-							{#each Array.from({ length: paginationSettings.amount }, (_, i) => i + 1) as pageNum}
-								{#if pageNum === paginationSettings.page}
-									<button class="btn preset-filled btn-sm" disabled>
-										{pageNum}
-									</button>
-								{:else if Math.abs(pageNum - paginationSettings.page) <= 2 || pageNum === 1 || pageNum === paginationSettings.amount}
-									<a href={urlFor({ page: pageNum })} class="btn preset-tonal btn-sm">
-										{pageNum}
-									</a>
-								{:else if pageNum === 2 || pageNum === paginationSettings.amount - 1}
-									<span class="btn preset-tonal btn-sm">...</span>
-								{/if}
-							{/each}
-						</div>
-
-						<!-- Next button -->
-						{#if paginationSettings.page < paginationSettings.amount}
-							<a
-								href={urlFor({ page: paginationSettings.page + 1 })}
-								class="btn preset-tonal btn-sm"
-								title="Next page"
-							>
-								<ArrowRightIcon class="size-4" />
-							</a>
-						{:else}
-							<button class="btn preset-tonal btn-sm opacity-50" disabled>
-								<ArrowRightIcon class="size-4" />
-							</button>
-						{/if}
-					</div>
-				</div>
-			</div>
+			<TablePaginationControls
+				currentPage={paginationSettings.page}
+				totalPages={paginationSettings.amount}
+				{pageSize}
+				{totalCount}
+				itemType="contact"
+				{urlFor}
+				onPageSizeChange={async (newPageSize) => {
+					paginationState.setPageSize(newPageSize);
+					const firstContactIndex = (paginationSettings.page - 1) * pageSize;
+					const newPage = Math.floor(firstContactIndex / newPageSize) + 1;
+					await navigateTo({ pageSize: newPageSize, page: newPage });
+				}}
+			/>
 			<!-- <pre>{JSON.stringify($table.getState().sorting, null, 2)}</pre> -->
 		</div>
 	{/if}

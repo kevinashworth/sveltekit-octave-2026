@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
+	import { getPaginationState } from '$lib/stores/pagination-state.svelte';
 	import {
 		BellIcon,
 		BuildingIcon,
@@ -14,6 +16,7 @@
 		UserIcon
 	} from '@lucide/svelte';
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
+	import { SvelteMap } from 'svelte/reactivity';
 
 	const navItems = {
 		authentication: [{ label: 'Sign In / Sign Up', href: '/login', icon: LogInIcon }],
@@ -49,6 +52,31 @@
 	};
 
 	let { hasHeader } = $props();
+
+	const paginationState = getPaginationState();
+
+	// derived (reactive) map of hrefs that updates when pageSize changes
+	const navHrefs = $derived.by(() => {
+		const currentPageSize = paginationState.pageSize;
+		const map = new SvelteMap<string, string>();
+
+		// Build href map for all nav items
+		Object.values(navItems)
+			.flat()
+			.forEach((link) => {
+				let href = link.href;
+				// add pageSize to Contacts and Offices
+				if (
+					(href === '/contacts' || href === '/offices') &&
+					currentPageSize !== DEFAULT_PAGE_SIZE
+				) {
+					href = `${href}?pageSize=${currentPageSize}`;
+				}
+				map.set(link.href, href);
+			});
+
+		return map;
+	});
 </script>
 
 <aside
@@ -67,12 +95,16 @@
 					</Navigation.TriggerAnchor>
 				</Navigation.Menu>
 			</Navigation.Group>
-			{#each Object.entries(navItems) as [category, links]}
+			{#each Object.entries(navItems) as [category, links] (category)}
 				<Navigation.Group>
 					<Navigation.Label class="pl-2 font-bold uppercase">{category}</Navigation.Label>
 					<Navigation.Menu>
 						{#each links as link (link)}
-							<Navigation.TriggerAnchor href={link.href} title={link.label} aria-label={link.label}>
+							<Navigation.TriggerAnchor
+								href={navHrefs.get(link.href) ?? link.href}
+								title={link.label}
+								aria-label={link.label}
+							>
 								<link.icon class="size-5" />
 								<Navigation.TriggerText class="text-sm">{link.label}</Navigation.TriggerText>
 							</Navigation.TriggerAnchor>

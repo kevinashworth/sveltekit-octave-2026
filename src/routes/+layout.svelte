@@ -1,12 +1,15 @@
 <script lang="ts">
-	import '../app.css';
 	import favicon from '$lib/assets/favicon.ico';
 	import Header from '$lib/components/layout/Header.svelte';
 	import Sidebar from '$lib/components/layout/Sidebar.svelte';
+	import { setPaginationState } from '$lib/stores/pagination-state.svelte';
+	import '../app.css';
 
 	const hasHeader = false; // Set to true if you want to show the header
 
 	let { children } = $props();
+
+	setPaginationState();
 </script>
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>

@@ -2,8 +2,6 @@
 	import {
 		ArrowDownAZIcon,
 		ArrowDownIcon,
-		ArrowLeftIcon,
-		ArrowRightIcon,
 		ArrowUpIcon,
 		ArrowUpZAIcon,
 		CircleXIcon,
@@ -17,12 +15,16 @@
 		getSortedRowModel
 	} from '@tanstack/svelte-table';
 	import debounce from 'debounce';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { writable } from 'svelte/store';
 
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { navigating } from '$app/state';
-	import { ALLOWED_PAGE_SIZES, DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
+	import TablePaginationControls from '$lib/components/TablePaginationControls.svelte';
+	import { DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
+	import { getPaginationState } from '$lib/stores/pagination-state.svelte';
+	import { formatDate } from '$lib/utils/date';
 	import { getModifierKeyPrefix } from '$lib/utils/keyboard';
 	import type { PageData } from './$types';
 
@@ -36,13 +38,15 @@
 	let { data }: { data: PageData } = $props();
 	const offices = $derived(data.offices);
 	const length = $derived(data.offices.length);
-	const pageSize = $derived(data.pageSize);
 	const totalCount = $derived(data.totalCount);
 	const paginationSettings = $derived(data.paginationSettings);
 
+	const paginationState = getPaginationState();
+	const pageSize = paginationState.pageSize;
+
 	const searchQuery = $derived(data.search ?? '');
 	const modifierKeyPrefix = getModifierKeyPrefix();
-	let searchInput = $state('');
+	let searchInput = $derived(searchQuery);
 
 	let sorting = $state<SortingState>([{ id: 'updated_at', desc: true }]);
 
@@ -63,17 +67,13 @@
 					navigating.to?.url.searchParams.get('pageSize'))
 	);
 
-	// Sync searchInput with searchQuery when it changes
-	$effect(() => {
-		searchInput = searchQuery;
-	});
 	let searchInputElement: HTMLInputElement;
 
 	/**
 	 * Build a URL with the given search parameters
 	 */
 	function urlFor(params: { page?: number; search?: string; pageSize?: number }): string {
-		const searchParams = new URLSearchParams();
+		const searchParams = new SvelteURLSearchParams();
 
 		// Use provided search or fallback to current search
 		const searchValue = params.search !== undefined ? params.search : searchQuery;
@@ -100,7 +100,7 @@
 		options: { keepFocus?: boolean } = {}
 	) {
 		const url = urlFor(params);
-		await goto(url, options);
+		await goto(url, options); // eslint-disable-line svelte/no-navigation-without-resolve
 	}
 
 	// Immediate search function
@@ -144,26 +144,6 @@
 		};
 	});
 
-	// Navigate to a specific page
-	async function goToPage(pageNum: number) {
-		await navigateTo({ page: pageNum });
-	}
-
-	// Handle page size change with smart page calculation
-	async function handlePageSizeChange(event: Event) {
-		const target = event.target as HTMLSelectElement;
-		const newPageSize = parseInt(target.value);
-		const currentPage = paginationSettings.page;
-
-		// Calculate which office is currently at the top of the page
-		const firstOfficeIndex = (currentPage - 1) * pageSize;
-
-		// Calculate which page that office will be on with the new page size
-		const newPage = Math.floor(firstOfficeIndex / newPageSize) + 1;
-
-		await navigateTo({ pageSize: newPageSize, page: newPage });
-	}
-
 	// Column definitions
 	const columns: ColumnDef<OfficeWithAddress>[] = [
 		{
@@ -180,15 +160,7 @@
 			accessorKey: 'updated_at',
 			header: 'Last Updated',
 			sortingFn: 'datetime',
-			cell: (info) => {
-				const value = info.getValue<string | null>();
-				if (!value) return 'N/A';
-				return new Date(value).toLocaleDateString('en-US', {
-					year: 'numeric',
-					month: 'short',
-					day: 'numeric'
-				});
-			}
+			cell: (info) => formatDate(info.getValue<string | null>())
 		}
 	];
 
@@ -229,7 +201,7 @@
 				class="w-full rounded-md border border-gray-300 py-2 pr-12 pl-10 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
 				oninput={performSearch}
 				onkeydown={handleSearchKeydown}
-				placeholder="Search offices..."
+				placeholder="Search office names..."
 				type="text"
 			/>
 			<div
@@ -272,9 +244,9 @@
 					<!-- Client-side rendered table with TanStack Table -->
 					<table class="table-hover table w-full">
 						<thead>
-							{#each $table.getHeaderGroups() as headerGroup}
+							{#each $table.getHeaderGroups() as headerGroup (headerGroup.id)}
 								<tr>
-									{#each headerGroup.headers as header}
+									{#each headerGroup.headers as header (header.id)}
 										{@const canSort = header.column.getCanSort()}
 										{@const sortState = header.column.getIsSorted()}
 										{@const Component = flexRender(
@@ -316,9 +288,9 @@
 							{/each}
 						</thead>
 						<tbody>
-							{#each $table.getRowModel().rows as row}
-								<tr>
-									{#each row.getVisibleCells() as cell}
+							{#each $table.getRowModel().rows as row, i (row.id)}
+								<tr class:bg-surface-100={i % 2 === 0}>
+									{#each row.getVisibleCells() as cell (cell.id)}
 										{@const Component = flexRender(cell.column.columnDef.cell, cell.getContext())}
 										<td>
 											<Component />
@@ -339,7 +311,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each offices as office}
+							{#each offices as office (office.id)}
 								<tr>
 									<td>{office.display_name}</td>
 									<td>{office.formattedAddress || ''}</td>
@@ -359,74 +331,20 @@
 				{/if}
 			</div>
 
-			<div class="flex w-full items-center justify-between gap-4">
-				<!-- Page Size  -->
-				<div class="text-sm whitespace-nowrap text-surface-600-400">
-					Showing {(paginationSettings.page - 1) * pageSize + 1} to {Math.min(
-						paginationSettings.page * pageSize,
-						totalCount
-					)} of {totalCount} offices
-				</div>
-				<div class="flex items-center gap-2">
-					<span class="text-sm text-surface-600-400">Show</span>
-					<select value={pageSize} onchange={handlePageSizeChange} class="select w-fit text-sm">
-						{#each ALLOWED_PAGE_SIZES as size}
-							<option value={size} title="show {size} offices per page">{size}</option>
-						{/each}
-					</select>
-				</div>
-				<!-- Pagination -->
-				<div class="rounded-container preset-outlined-surface-200-800 p-2">
-					<div class="flex gap-2">
-						<!-- Previous button -->
-						{#if paginationSettings.page > 1}
-							<a
-								href={urlFor({ page: paginationSettings.page - 1 })}
-								class="btn preset-tonal btn-sm"
-								title="Previous page"
-							>
-								<ArrowLeftIcon class="size-4" />
-							</a>
-						{:else}
-							<button class="btn preset-tonal btn-sm opacity-50" disabled>
-								<ArrowLeftIcon class="size-4" />
-							</button>
-						{/if}
-
-						<!-- Page numbers -->
-						<div class="flex gap-1">
-							{#each Array.from({ length: paginationSettings.amount }, (_, i) => i + 1) as pageNum}
-								{#if pageNum === paginationSettings.page}
-									<button class="btn preset-filled btn-sm" disabled>
-										{pageNum}
-									</button>
-								{:else if Math.abs(pageNum - paginationSettings.page) <= 2 || pageNum === 1 || pageNum === paginationSettings.amount}
-									<a href={urlFor({ page: pageNum })} class="btn preset-tonal btn-sm">
-										{pageNum}
-									</a>
-								{:else if pageNum === 2 || pageNum === paginationSettings.amount - 1}
-									<span class="btn preset-tonal btn-sm">...</span>
-								{/if}
-							{/each}
-						</div>
-
-						<!-- Next button -->
-						{#if paginationSettings.page < paginationSettings.amount}
-							<a
-								href={urlFor({ page: paginationSettings.page + 1 })}
-								class="btn preset-tonal btn-sm"
-								title="Next page"
-							>
-								<ArrowRightIcon class="size-4" />
-							</a>
-						{:else}
-							<button class="btn preset-tonal btn-sm opacity-50" disabled>
-								<ArrowRightIcon class="size-4" />
-							</button>
-						{/if}
-					</div>
-				</div>
-			</div>
+			<TablePaginationControls
+				currentPage={paginationSettings.page}
+				totalPages={paginationSettings.amount}
+				{pageSize}
+				{totalCount}
+				itemType="office"
+				{urlFor}
+				onPageSizeChange={async (newPageSize) => {
+					paginationState.setPageSize(newPageSize);
+					const firstOfficeIndex = (paginationSettings.page - 1) * pageSize;
+					const newPage = Math.floor(firstOfficeIndex / newPageSize) + 1;
+					await navigateTo({ pageSize: newPageSize, page: newPage });
+				}}
+			/>
 		</div>
 	{/if}
 </div>

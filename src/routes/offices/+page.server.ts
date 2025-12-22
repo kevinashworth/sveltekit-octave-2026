@@ -14,20 +14,26 @@ interface OfficeWithAddress {
 }
 
 /**
- * Format an address object into a string: "street1, street2, city, state, zip"
+ * Format an address object into a string: "street1 street2, city state zip"
  * Returns empty string if address is null/undefined
  */
 function formatAddress(address: DbAddress | null | undefined): string {
 	if (!address) return '';
 
-	const parts: string[] = [];
-	if (address.street1) parts.push(address.street1);
-	if (address.street2) parts.push(address.street2);
-	if (address.city) parts.push(address.city);
-	if (address.state) parts.push(address.state);
-	if (address.zip) parts.push(address.zip);
+	const streetParts: string[] = [];
+	if (address.street1) streetParts.push(address.street1);
+	if (address.street2) streetParts.push(address.street2);
 
-	return parts.join(', ');
+	const cityStateParts: string[] = [];
+	if (address.city) cityStateParts.push(address.city);
+	if (address.state) cityStateParts.push(address.state);
+	if (address.zip) cityStateParts.push(address.zip);
+
+	const sections: string[] = [];
+	if (streetParts.length > 0) sections.push(streetParts.join(' '));
+	if (cityStateParts.length > 0) sections.push(cityStateParts.join(' '));
+
+	return sections.join(', ');
 }
 
 /**
@@ -57,6 +63,7 @@ export const load: PageServerLoad = async ({ url }) => {
 	try {
 		// Split search into individual terms and filter out empty strings
 		const searchTerms = search.trim().split(/\s+/).filter(Boolean);
+		const hasSearch = searchTerms.length > 0;
 
 		// Build the base query with nested join to addresses
 		let query = supabase.from('offices').select(
@@ -79,14 +86,16 @@ export const load: PageServerLoad = async ({ url }) => {
 			{ count: 'exact' }
 		);
 
-		// If search terms exist, filter by them (each term must match at least one field)
-		if (searchTerms.length > 0) {
-			// Apply each term as a separate OR filter across all searchable fields
-			for (const term of searchTerms) {
-				query = query.or(
-					`display_name.ilike.%${term}%,office_addresses.addresses.street1.ilike.%${term}%,office_addresses.addresses.city.ilike.%${term}%,office_addresses.addresses.state.ilike.%${term}%`
-				);
-			}
+		// If search terms exist, filter by them on the display_name field
+		if (hasSearch) {
+			// Build OR conditions for display_name only
+			const orConditions = searchTerms
+				.map((term) => {
+					return `display_name.ilike.%${term}%`;
+				})
+				.join(',');
+
+			query = query.or(orConditions);
 		}
 
 		// Build complete query before executing
