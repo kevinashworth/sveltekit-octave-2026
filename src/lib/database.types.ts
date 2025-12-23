@@ -615,13 +615,13 @@ export type Database = {
 					order: string | null;
 					platform_type: string | null;
 					project_title: string;
-					project_type: string | null;
+					project_type: Database['public']['Enums']['project_type'] | null;
 					renewed: boolean | null;
 					season: string | null;
 					shooting_location: string | null;
 					slug: string;
 					sort_title: string | null;
-					status: string | null;
+					status: Database['public']['Enums']['project_status'] | null;
 					summary: string | null;
 					union: string | null;
 					updated_at: string | null;
@@ -639,13 +639,13 @@ export type Database = {
 					order?: string | null;
 					platform_type?: string | null;
 					project_title: string;
-					project_type?: string | null;
+					project_type?: Database['public']['Enums']['project_type'] | null;
 					renewed?: boolean | null;
 					season?: string | null;
 					shooting_location?: string | null;
 					slug: string;
 					sort_title?: string | null;
-					status?: string | null;
+					status?: Database['public']['Enums']['project_status'] | null;
 					summary?: string | null;
 					union?: string | null;
 					updated_at?: string | null;
@@ -663,13 +663,13 @@ export type Database = {
 					order?: string | null;
 					platform_type?: string | null;
 					project_title?: string;
-					project_type?: string | null;
+					project_type?: Database['public']['Enums']['project_type'] | null;
 					renewed?: boolean | null;
 					season?: string | null;
 					shooting_location?: string | null;
 					slug?: string;
 					sort_title?: string | null;
-					status?: string | null;
+					status?: Database['public']['Enums']['project_status'] | null;
 					summary?: string | null;
 					union?: string | null;
 					updated_at?: string | null;
@@ -731,13 +731,13 @@ export type Database = {
 					order: string | null;
 					platform_type: string | null;
 					project_title: string;
-					project_type: string | null;
+					project_type: Database['public']['Enums']['project_type'] | null;
 					renewed: boolean | null;
 					season: string | null;
 					shooting_location: string | null;
 					slug: string;
 					sort_title: string | null;
-					status: string | null;
+					status: Database['public']['Enums']['project_status'] | null;
 					summary: string | null;
 					union: string | null;
 					updated_at: string | null;
@@ -755,13 +755,13 @@ export type Database = {
 					order?: string | null;
 					platform_type?: string | null;
 					project_title: string;
-					project_type?: string | null;
+					project_type?: Database['public']['Enums']['project_type'] | null;
 					renewed?: boolean | null;
 					season?: string | null;
 					shooting_location?: string | null;
 					slug: string;
 					sort_title?: string | null;
-					status?: string | null;
+					status?: Database['public']['Enums']['project_status'] | null;
 					summary?: string | null;
 					union?: string | null;
 					updated_at?: string | null;
@@ -779,13 +779,13 @@ export type Database = {
 					order?: string | null;
 					platform_type?: string | null;
 					project_title?: string;
-					project_type?: string | null;
+					project_type?: Database['public']['Enums']['project_type'] | null;
 					renewed?: boolean | null;
 					season?: string | null;
 					shooting_location?: string | null;
 					slug?: string;
 					sort_title?: string | null;
-					status?: string | null;
+					status?: Database['public']['Enums']['project_status'] | null;
 					summary?: string | null;
 					union?: string | null;
 					updated_at?: string | null;
@@ -975,7 +975,40 @@ export type Database = {
 			[_ in never]: never;
 		};
 		Enums: {
-			[_ in never]: never;
+			project_status:
+				| 'Casting'
+				| 'On Hiatus'
+				| 'On Hold'
+				| 'Ordered'
+				| 'Pre-Prod.'
+				| 'See Notes'
+				| 'Shooting'
+				| 'Suspended'
+				| 'Undetermined'
+				| 'Canceled'
+				| 'Relocated'
+				| 'Unknown'
+				| 'Wrapped';
+			project_type:
+				| 'Feature Film'
+				| 'Feature Film (ULB)'
+				| 'Feature Film (MLB)'
+				| 'Feature Film (MPA)'
+				| 'Feature Film (LB)'
+				| 'TV Daytime'
+				| 'TV One Hour'
+				| 'TV 1/2 Hour'
+				| 'TV Movie'
+				| 'TV Mini-Series'
+				| 'TV Animation'
+				| 'TV Sketch/Improv'
+				| 'TV Talk/Variety'
+				| 'Pilot Presentation'
+				| 'Pilot One Hour'
+				| 'Pilot 1/2 Hour'
+				| 'New Media'
+				| 'Short Film'
+				| 'Podcast';
 		};
 		CompositeTypes: {
 			[_ in never]: never;
@@ -1100,6 +1133,43 @@ export type CompositeTypes<
 
 export const Constants = {
 	public: {
-		Enums: {}
+		Enums: {
+			project_status: [
+				'Casting',
+				'On Hiatus',
+				'On Hold',
+				'Ordered',
+				'Pre-Prod.',
+				'See Notes',
+				'Shooting',
+				'Suspended',
+				'Undetermined',
+				'Canceled',
+				'Relocated',
+				'Unknown',
+				'Wrapped'
+			],
+			project_type: [
+				'Feature Film',
+				'Feature Film (ULB)',
+				'Feature Film (MLB)',
+				'Feature Film (MPA)',
+				'Feature Film (LB)',
+				'TV Daytime',
+				'TV One Hour',
+				'TV 1/2 Hour',
+				'TV Movie',
+				'TV Mini-Series',
+				'TV Animation',
+				'TV Sketch/Improv',
+				'TV Talk/Variety',
+				'Pilot Presentation',
+				'Pilot One Hour',
+				'Pilot 1/2 Hour',
+				'New Media',
+				'Short Film',
+				'Podcast'
+			]
+		}
 	}
 } as const;
