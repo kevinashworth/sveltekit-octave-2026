@@ -65,9 +65,9 @@
 			.flat()
 			.forEach((link) => {
 				let href = link.href;
-				// add pageSize to Contacts and Offices
+				// add pageSize to Contacts, Offices, and Projects
 				if (
-					(href === '/contacts' || href === '/offices') &&
+					(href === '/contacts' || href === '/offices' || href === '/projects') &&
 					currentPageSize !== DEFAULT_PAGE_SIZE
 				) {
 					href = `${href}?pageSize=${currentPageSize}`;
