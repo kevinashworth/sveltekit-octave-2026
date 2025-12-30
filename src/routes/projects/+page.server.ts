@@ -1,7 +1,8 @@
+import { redirect } from '@sveltejs/kit';
+
 import { ALLOWED_PAGE_SIZES, DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
 import type { Database } from '$lib/database.types';
 import { supabase } from '$lib/supabase';
-import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 interface ProjectWithOffice {
@@ -11,13 +12,14 @@ interface ProjectWithOffice {
 	network: string | null;
 	project_type: Database['public']['Enums']['project_type'] | null;
 	shooting_location: string | null;
-	notes: string | null;
+	html_notes: string | null;
 	status: Database['public']['Enums']['project_status'] | null;
 	created_at: string;
 	updated_at: string | null;
 }
 
 export const load: PageServerLoad = async ({ url }) => {
+	// Get pagination parameters
 	const requestedPage = parseInt(url.searchParams.get('page') ?? '1') || 1;
 	let page = Math.max(1, requestedPage);
 	const search = url.searchParams.get('search')?.toLowerCase() ?? '';
@@ -45,7 +47,7 @@ export const load: PageServerLoad = async ({ url }) => {
 				network,
 				project_type,
 				shooting_location,
-				notes,
+				html_notes,
 				status,
 				created_at,
 				updated_at
@@ -53,11 +55,11 @@ export const load: PageServerLoad = async ({ url }) => {
 			{ count: 'exact' }
 		);
 
-		// If search terms exist, filter by them on project_title, network, and casting_company
+		// If search terms exist, filter by them on project_title, network, shooting_location, and casting_company
 		if (hasSearch) {
 			const orConditions = searchTerms
 				.map((term) => {
-					return `project_title.ilike.%${term}%,network.ilike.%${term}%,casting_company.ilike.%${term}%`;
+					return `project_title.ilike.%${term}%,network.ilike.%${term}%,shooting_location.ilike.%${term}%,casting_company.ilike.%${term}%`;
 				})
 				.join(',');
 

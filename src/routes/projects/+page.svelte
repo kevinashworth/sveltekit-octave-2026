@@ -8,7 +8,12 @@
 		SearchIcon
 	} from '@lucide/svelte';
 	import type { ColumnDef, SortingState, TableOptions } from '@tanstack/svelte-table';
-	import { createSvelteTable, flexRender, getCoreRowModel } from '@tanstack/svelte-table';
+	import {
+		createSvelteTable,
+		flexRender,
+		getCoreRowModel,
+		renderComponent
+	} from '@tanstack/svelte-table';
 	import debounce from 'debounce';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { writable } from 'svelte/store';
@@ -17,26 +22,15 @@
 	import { goto } from '$app/navigation';
 	import { navigating } from '$app/state';
 	import DateCell from '$lib/components/DateCell.svelte';
+	import NoteCell from '$lib/components/NoteCell.svelte';
 	import TablePaginationControls from '$lib/components/TablePaginationControls.svelte';
 	import { DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
-	import type { Database } from '$lib/database.types';
 	import { getPaginationState } from '$lib/stores/pagination-state.svelte';
 	import { formatDate } from '$lib/utils/date';
 	import { getModifierKeyPrefix } from '$lib/utils/keyboard';
 	import type { PageData } from './$types';
 
-	interface ProjectWithOffice {
-		id: string;
-		project_title: string;
-		casting_company: string | null;
-		network: string | null;
-		project_type: Database['public']['Enums']['project_type'] | null;
-		shooting_location: string | null;
-		notes: string | null;
-		status: Database['public']['Enums']['project_status'] | null;
-		created_at: string;
-		updated_at: string | null;
-	}
+	type ProjectWithOffice = PageData['projects'][number];
 
 	let { data }: { data: PageData } = $props();
 	const projects = $derived(data.projects);
@@ -69,22 +63,6 @@
 	);
 
 	let searchInputElement: HTMLInputElement;
-
-	/**
-	 * Truncate HTML content to a specified length and add ellipsis
-	 */
-	function truncateHtml(html: string | null, maxLength: number = 100): string {
-		if (!html) return '';
-
-		// Strip HTML tags to get plain text
-		const plainText = html.replace(/<[^>]*>/g, '');
-
-		if (plainText.length <= maxLength) {
-			return plainText;
-		}
-
-		return plainText.substring(0, maxLength) + '…';
-	}
 
 	/**
 	 * Build a URL with the given search parameters
@@ -127,7 +105,8 @@
 	}
 
 	/**
-	 * Navigate to a URL with the given parameters
+	 * Navigate to a URL with the given parameters.
+	 * Automatically preserves current state (pageSize, sort, search) unless explicitly overridden.
 	 */
 	async function navigateTo(
 		params: {
@@ -139,7 +118,12 @@
 		},
 		options: { keepFocus?: boolean } = {}
 	) {
-		const url = urlFor(params);
+		// Always include current pageSize unless explicitly provided
+		const finalParams = {
+			pageSize: paginationState.pageSize,
+			...params
+		};
+		const url = urlFor(finalParams);
 		await goto(url, options); // eslint-disable-line svelte/no-navigation-without-resolve
 	}
 
@@ -193,8 +177,10 @@
 			// Toggle between asc and desc
 			newSortOrder = currentSort.desc ? 'asc' : 'desc';
 		} else {
-			// Default to desc for new column
-			newSortOrder = 'desc';
+			// Default direction depends on column type: date columns default to desc, others to asc
+			const colDef = columns.find((c) => 'accessorKey' in c && c.accessorKey === columnId);
+			const sortingFn = colDef?.sortingFn;
+			newSortOrder = sortingFn === 'datetime' ? 'desc' : 'asc';
 		}
 
 		await navigateTo({ sortBy: columnId, sortOrder: newSortOrder, page: 1 });
@@ -228,10 +214,19 @@
 			sortingFn: 'alphanumeric'
 		},
 		{
-			accessorKey: 'notes',
+			accessorKey: 'html_notes',
 			header: 'Notes',
-			enableSorting: false,
-			cell: (info) => truncateHtml(info.getValue<string | null>())
+			// enableSorting: false,
+			// sortingFn: 'basic',
+			// sortUndefined: 'last',
+			cell: (info) => {
+				const props = {
+					value: info.getValue<string | null>(),
+					id: info.row.original.id,
+					project_title: info.row.original.project_title
+				};
+				return renderComponent(NoteCell, props);
+			}
 		},
 		{
 			accessorKey: 'status',
@@ -259,6 +254,7 @@
 			state: {
 				sorting
 			},
+
 			manualSorting: true,
 			getCoreRowModel: getCoreRowModel()
 		});
@@ -341,6 +337,7 @@
 											header.getContext()
 										)}
 										{@const isDateColumn = header.column.columnDef.sortingFn === 'datetime'}
+										{@const isNoteColumn = header.column.id === 'html_notes'}
 										<th class="group">
 											<button
 												type="button"
@@ -349,7 +346,7 @@
 												onclick={() => canSort && handleSort(header.column.id)}
 												class="inline-flex items-center font-semibold"
 												><Component />
-												{#if isDateColumn}
+												{#if isDateColumn || isNoteColumn}
 													{#if sortState === 'asc'}
 														<ArrowUpIcon class="ml-1 inline h-6 w-6 text-secondary-500" />
 													{:else if sortState === 'desc'}
@@ -411,7 +408,13 @@
 									<td>{project.network ?? ''}</td>
 									<td>{project.project_type ?? ''}</td>
 									<td>{project.shooting_location ?? ''}</td>
-									<td>{truncateHtml(project.notes)}</td>
+									<td>
+										<NoteCell
+											value={project.html_notes}
+											id={project.id}
+											project_title={project.project_title}
+										/>
+									</td>
 									<td>{project.status ?? ''}</td>
 									<td>
 										<DateCell value={project.created_at} />
@@ -445,7 +448,8 @@
 </div>
 
 <style>
-	td {
+	td,
+	th {
 		font-size: smaller;
 	}
 </style>

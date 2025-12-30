@@ -2,10 +2,11 @@ import { ALLOWED_PAGE_SIZES, DEFAULT_PAGE_SIZE } from '$lib/constants/pagination
 import type { Database } from '$lib/database.types';
 import { supabase } from '$lib/supabase';
 import { redirect } from '@sveltejs/kit';
+import type { PageServerLoad } from './$types';
 
 type DbContact = Database['public']['Tables']['contacts']['Row'];
 
-export async function load({ url }) {
+export const load: PageServerLoad = async ({ url }) => {
 	const requestedPage = parseInt(url.searchParams.get('page') ?? '1') || 1;
 	let page = Math.max(1, requestedPage);
 	const search = url.searchParams.get('search')?.toLowerCase() ?? '';
@@ -101,4 +102,4 @@ export async function load({ url }) {
 			error: error instanceof Error ? error.message : 'Unknown error'
 		};
 	}
-}
+};
