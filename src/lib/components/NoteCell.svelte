@@ -26,36 +26,46 @@
 			<NotepadTextIcon />
 		</wa-button>
 	{:else}
-		<wa-button appearance="plain" size="small" title="No notes available" variant="neutral">
+		<wa-button
+			appearance="plain"
+			disabled
+			size="small"
+			title="No notes available"
+			variant="neutral"
+		>
 			<NotepadTextDashedIcon />
 		</wa-button>
 	{/if}
 
-	<wa-popover
-		class="wa-body m-4 max-w-xs card border bg-primary-50 p-4 shadow"
-		for={popoverId}
-		placement="bottom"
-	>
-		<h6>{project_title}</h6>
-		<article>{@html value}</article>
+	<wa-popover distance={10} for={popoverId} placement="bottom">
+		<article>
+			<header>
+				<h6>{project_title}</h6>
+			</header>
+			{@html value}
+		</article>
 	</wa-popover>
 </div>
 
 <style>
-	::backdrop {
-		backdrop-filter: blur(0.5px);
-	}
-
-	:popover-open {
-		inset: unset;
-		position: relative;
-		top: 0.5rem;
+	/* https://github.com/shoelace-style/webawesome/discussions/1520#discussioncomment-15013951 */
+	wa-button[appearance='plain']::part(base) {
+		height: auto;
+		padding: 0;
 	}
 
 	article :global {
 		a {
 			color: #0071ec;
 			text-decoration: underline;
+		}
+		h6 {
+			color: #0071ec;
+			font-weight: 600;
+		}
+		p strong {
+			color: #0071ec;
+			font-size: smaller;
 		}
 	}
 </style>
