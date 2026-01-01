@@ -1,57 +1,44 @@
 <script lang="ts">
 	import { DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
 	import { getPaginationState } from '$lib/stores/pagination-state.svelte';
-	import {
-		BellIcon,
-		BuildingIcon,
-		CameraIcon,
-		ChartColumnIcon,
-		CodeIcon,
-		ContactIcon,
-		HouseIcon,
-		LogInIcon,
-		MessageCircleIcon,
-		PencilIcon,
-		TrendingUpIcon,
-		UserIcon
-	} from '@lucide/svelte';
+	import { BuildingIcon, CameraIcon, ContactIcon, HouseIcon, LogInIcon } from '@lucide/svelte';
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 
 	const navItems = {
 		authentication: [{ label: 'Sign In / Sign Up', href: '/login', icon: LogInIcon }],
-		main: [
-			{ label: 'Latest Updates', href: '/latest', icon: BellIcon },
-			{ label: 'Trends', href: '/trends', icon: TrendingUpIcon }
-		],
+		// main: [
+		// 	{ label: 'Latest Updates', href: '/latest', icon: BellIcon },
+		// 	{ label: 'Trends', href: '/trends', icon: TrendingUpIcon }
+		// ],
 		information: [
 			{ label: 'Contacts', href: '/contacts', icon: ContactIcon },
 			{ label: 'Offices', href: '/offices', icon: BuildingIcon },
 			{ label: 'Projects', href: '/projects', icon: CameraIcon },
 			{ label: 'Past Projects', href: '/past-projects', icon: CameraIcon }
-		],
-		creation: [
-			{ label: 'New Contact', href: '/contacts/new', icon: ContactIcon },
-			{ label: 'New Office', href: '/offices/new', icon: BuildingIcon },
-			{ label: 'New Project', href: '/projects/new', icon: CameraIcon }
-		],
-		administration: [
-			{ label: 'User Admin', href: '/admin/users', icon: UserIcon },
-			{ label: 'Comments Admin', href: '/admin/comments', icon: MessageCircleIcon },
-			{ label: 'Back Office', href: '/backoffice', icon: PencilIcon },
-			{ label: 'Statistics', href: '/statistics/list', icon: ChartColumnIcon }
-		],
-		development: [
-			{ label: 'Apollo Test', href: '/test', icon: CodeIcon },
-			{ label: 'Debug', href: '/debug', icon: CodeIcon },
-			{ label: 'Fragments', href: '/fragments', icon: CodeIcon },
-			{ label: 'Contacts (M)', href: '/m/contacts', icon: ContactIcon },
-			{ label: 'Offices (M)', href: '/m/offices', icon: BuildingIcon },
-			{ label: 'Projects (M)', href: '/m/projects', icon: CameraIcon }
 		]
+		// creation: [
+		// 	{ label: 'New Contact', href: '/contacts/new', icon: ContactIcon },
+		// 	{ label: 'New Office', href: '/offices/new', icon: BuildingIcon },
+		// 	{ label: 'New Project', href: '/projects/new', icon: CameraIcon }
+		// ],
+		// administration: [
+		// 	{ label: 'User Admin', href: '/admin/users', icon: UserIcon },
+		// 	{ label: 'Comments Admin', href: '/admin/comments', icon: MessageCircleIcon },
+		// 	{ label: 'Back Office', href: '/backoffice', icon: PencilIcon },
+		// 	{ label: 'Statistics', href: '/statistics/list', icon: ChartColumnIcon }
+		// ],
+		// development: [
+		// 	{ label: 'Apollo Test', href: '/test', icon: CodeIcon },
+		// 	{ label: 'Debug', href: '/debug', icon: CodeIcon },
+		// 	{ label: 'Fragments', href: '/fragments', icon: CodeIcon },
+		// 	{ label: 'Contacts (M)', href: '/m/contacts', icon: ContactIcon },
+		// 	{ label: 'Offices (M)', href: '/m/offices', icon: BuildingIcon },
+		// 	{ label: 'Projects (M)', href: '/m/projects', icon: CameraIcon }
+		// ]
 	};
 
-	let { hasHeader } = $props();
+	let { hasHeader, hasFooter } = $props();
 
 	const paginationState = getPaginationState();
 
@@ -81,8 +68,13 @@
 
 <aside
 	class={[
-		'sticky col-span-1 h-full  w-fit overflow-hidden',
-		{ 'top-12  max-h-[calc(100vh-(--spacing(12)))]': hasHeader }
+		'sticky col-span-1 h-full w-fit overflow-hidden',
+		{
+			'top-12 max-h-[calc(100vh-(--spacing(12)))]': hasHeader && hasFooter,
+			'top-12 min-h-[calc(100vh-(--spacing(12)))]': hasHeader && !hasFooter,
+			'top-0 max-h-screen': !hasHeader && hasFooter,
+			'top-0 min-h-screen': !hasHeader && !hasFooter
+		}
 	]}
 >
 	<Navigation layout="sidebar" class="flex h-full w-fit flex-col gap-4">
