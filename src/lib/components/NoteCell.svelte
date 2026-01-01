@@ -42,6 +42,7 @@
 			<header>
 				<h6>{project_title}</h6>
 			</header>
+			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 			{@html value}
 		</article>
 	</wa-popover>

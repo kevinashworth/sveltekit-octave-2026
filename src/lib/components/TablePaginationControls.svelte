@@ -4,19 +4,12 @@
 	import { ArrowLeftIcon, ArrowRightIcon } from '@lucide/svelte';
 
 	interface Props {
-		/** Current page number (1-based) */
 		currentPage: number;
-		/** Total number of pages */
 		totalPages: number;
-		/** Current page size */
 		pageSize: number;
-		/** Total number of items */
 		totalCount: number;
-		/** Item type name (singular) for display (e.g., 'contact', 'office') */
 		itemType: string;
-		/** Function to generate URL for a given page */
 		urlFor: (params: { page?: number; pageSize?: number }) => string;
-		/** Callback when page size changes */
 		onPageSizeChange: (newPageSize: number) => void;
 	}
 

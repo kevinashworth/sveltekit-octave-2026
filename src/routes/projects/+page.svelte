@@ -30,7 +30,7 @@
 	import { getModifierKeyPrefix } from '$lib/utils/keyboard';
 	import type { PageData } from './$types';
 
-	type ProjectWithOffice = PageData['projects'][number];
+	type Project = PageData['projects'][number];
 
 	let { data }: { data: PageData } = $props();
 	const projects = $derived(data.projects);
@@ -187,7 +187,7 @@
 	}
 
 	// Column definitions
-	const columns: ColumnDef<ProjectWithOffice>[] = [
+	const columns: ColumnDef<Project>[] = [
 		{
 			accessorKey: 'project_title',
 			header: 'Project Title',
@@ -248,8 +248,8 @@
 	];
 
 	const tableOptions = $derived.by(() => {
-		return writable<TableOptions<ProjectWithOffice>>({
-			data: projects as ProjectWithOffice[],
+		return writable<TableOptions<Project>>({
+			data: projects as Project[],
 			columns,
 			state: {
 				sorting

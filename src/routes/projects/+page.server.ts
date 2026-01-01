@@ -5,7 +5,7 @@ import type { Database } from '$lib/database.types';
 import { supabase } from '$lib/supabase';
 import type { PageServerLoad } from './$types';
 
-interface ProjectWithOffice {
+interface Project {
 	id: string;
 	project_title: string;
 	casting_company: string | null;
@@ -99,7 +99,7 @@ export const load: PageServerLoad = async ({ url }) => {
 
 		if (dataError) throw dataError;
 
-		const projects: ProjectWithOffice[] = rawProjects || [];
+		const projects: Project[] = rawProjects || [];
 
 		const paginationSettings = {
 			page: page,
