@@ -43,13 +43,19 @@
 	<!-- Page size selector -->
 	<div class="flex items-center gap-2">
 		<span class="text-sm text-surface-600-400">Show</span>
-		<select value={pageSize} onchange={handlePageSizeChange} class="select w-fit text-sm">
-			{#each ALLOWED_PAGE_SIZES as size (size)}
-				<option value={size} title="show {size} {size === 1 ? itemType : `${itemType}s`} per page">
-					{size}
-				</option>
-			{/each}
-		</select>
+		<label>
+			<span class="sr-only">Page Size</span>
+			<select value={pageSize} onchange={handlePageSizeChange} class="select w-fit text-sm">
+				{#each ALLOWED_PAGE_SIZES as size (size)}
+					<option
+						value={size}
+						title="show {size} {size === 1 ? itemType : `${itemType}s`} per page"
+					>
+						{size}
+					</option>
+				{/each}
+			</select>
+		</label>
 	</div>
 
 	<!-- Pagination -->
