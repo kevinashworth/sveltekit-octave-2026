@@ -24,7 +24,7 @@
 			{/if}
 
 			<div class="grid h-full grid-cols-1 md:grid-cols-[auto_1fr]">
-				<AppSidebar {hasHeader} {hasFooter} />
+				<AppSidebar />
 				<main class="space-y-4 p-4">
 					{@render children?.()}
 				</main>

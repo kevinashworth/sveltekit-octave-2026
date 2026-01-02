@@ -303,7 +303,7 @@
 	{:else}
 		<div class="space-y-4">
 			<!-- Table -->
-			<div class="relative table-wrap rounded-md border border-surface-200-800">
+			<div class="table-wrap border-surface-200-800 relative rounded-md border">
 				<!-- Loading overlay -->
 				{#if changeInProgress}
 					<div class="absolute inset-0 z-10 bg-white/50 backdrop-blur-[0.5px] transition-opacity">
@@ -333,17 +333,17 @@
 												><Component />
 												{#if isDateColumn}
 													{#if sortState === 'asc'}
-														<ArrowUpIcon class="ml-1 inline h-6 w-6 text-secondary-500" />
+														<ArrowUpIcon class="text-secondary-500 ml-1 inline h-6 w-6" />
 													{:else if sortState === 'desc'}
-														<ArrowDownIcon class="ml-1 inline h-6 w-6 text-secondary-500" />
+														<ArrowDownIcon class="text-secondary-500 ml-1 inline h-6 w-6" />
 													{:else if canSort}
 														<ArrowDownIcon
 															class="ml-1 inline h-6 w-6 opacity-0 group-hover:opacity-30" />
 													{/if}
 												{:else if sortState === 'asc'}
-													<ArrowDownAZIcon class="ml-1 inline h-6 w-6 text-secondary-500" />
+													<ArrowDownAZIcon class="text-secondary-500 ml-1 inline h-6 w-6" />
 												{:else if sortState === 'desc'}
-													<ArrowUpZAIcon class="ml-1 inline h-6 w-6 text-secondary-500" />
+													<ArrowUpZAIcon class="text-secondary-500 ml-1 inline h-6 w-6" />
 												{:else if canSort}
 													<ArrowDownAZIcon
 														class="ml-1 inline h-6 w-6 opacity-0 group-hover:opacity-30" />

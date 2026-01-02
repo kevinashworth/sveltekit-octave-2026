@@ -1,8 +1,8 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
 	import { getPaginationState } from '$lib/stores/pagination-state.svelte';
-	import { cn } from '$lib/utils';
 	import {
 		BellIcon,
 		BuildingIcon,
@@ -47,8 +47,6 @@
 		// ]
 	};
 
-	let { hasHeader, hasFooter } = $props();
-
 	const paginationState = getPaginationState();
 
 	// derived (reactive) map of hrefs that updates when pageSize changes
@@ -83,7 +81,7 @@
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet child({ props })}
-								<a href="/" {...props}>
+								<a href={resolve(navHrefs.get('/') ?? '/')} {...props}>
 									<HouseIcon class="size-5" />
 									<span>Home</span>
 								</a>
@@ -102,7 +100,7 @@
 							<Sidebar.MenuItem>
 								<Sidebar.MenuButton>
 									{#snippet child({ props })}
-										<a href={link.href} {...props}>
+										<a href={resolve(navHrefs.get(link.href) ?? link.href)} {...props}>
 											<link.icon />
 											<span>{link.label}</span>
 										</a>

@@ -28,14 +28,14 @@
 
 <div class="flex w-full items-center justify-between gap-4">
 	<!-- Showing count -->
-	<div class="text-sm whitespace-nowrap text-surface-600-400">
+	<div class="text-surface-600-400 text-sm whitespace-nowrap">
 		Showing {startIndex} to {endIndex} of {totalCount}
 		{totalCount === 1 ? itemType : `${itemType}s`}
 	</div>
 
 	<!-- Page size selector -->
 	<div class="flex items-center gap-2">
-		<span class="text-sm text-surface-600-400">Show</span>
+		<span class="text-surface-600-400 text-sm">Show</span>
 		<label>
 			<span class="sr-only">Page Size</span>
 			<select value={pageSize} onchange={handlePageSizeChange} class="select w-fit text-sm">
