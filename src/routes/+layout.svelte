@@ -2,6 +2,7 @@
 	import favicon from '$lib/assets/favicon.ico';
 	import Header from '$lib/components/layout/Header.svelte';
 	import Sidebar from '$lib/components/layout/Sidebar.svelte';
+	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
 	import { setPaginationState } from '$lib/stores/pagination-state.svelte';
 	import '../app.css';
 
@@ -22,7 +23,9 @@
 	<div class="grid h-full grid-cols-1 md:grid-cols-[auto_1fr]">
 		<Sidebar {hasHeader} {hasFooter} />
 		<main class="space-y-4 p-4">
-			{@render children()}
+			<Tooltip.Provider>
+				{@render children()}
+			</Tooltip.Provider>
 		</main>
 	</div>
 
