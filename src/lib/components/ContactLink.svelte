@@ -1,6 +1,4 @@
 <script lang="ts">
-	import '@awesome.me/webawesome/dist/components/button/button.js';
-	import '@awesome.me/webawesome/dist/components/tooltip/tooltip.js';
 	import {
 		DatabaseIcon,
 		FacebookIcon,
@@ -55,23 +53,17 @@
 </script>
 
 <div>
-	<wa-button
-		appearance="filled"
-		href={link.profile_link}
-		id={buttonId}
-		size="small"
-		variant="brand"
-	>
+	<button appearance="filled" href={link.profile_link} id={buttonId} size="small" variant="brand">
 		<div class="flex items-center gap-1">
 			<IconComponent />
 			{#if showText}
 				<span class="text-xs">{link.platform_name}</span>
 			{/if}
 		</div>
-	</wa-button>
-	<wa-tooltip for={buttonId} placement="bottom-start" style="--max-width: 920px;">
+	</button>
+	<tooltip for={buttonId} placement="bottom-start" style="--max-width: 920px;">
 		<div class="text-sm text-nowrap">
 			{link.platform_name}<br />{link.profile_link}
 		</div>
-	</wa-tooltip>
+	</tooltip>
 </div>

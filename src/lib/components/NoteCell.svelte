@@ -1,7 +1,4 @@
 <script lang="ts">
-	import '@awesome.me/webawesome/dist/components/button/button.js';
-	import '@awesome.me/webawesome/dist/components/popover/popover.js';
-	import '@awesome.me/webawesome/dist/styles/themes/default.css';
 	import { NotepadTextDashedIcon, NotepadTextIcon } from '@lucide/svelte';
 
 	interface Props {
@@ -16,7 +13,7 @@
 
 <div>
 	{#if value}
-		<wa-button
+		<button
 			appearance="plain"
 			id={popoverId}
 			size="small"
@@ -24,20 +21,14 @@
 			variant="brand"
 		>
 			<NotepadTextIcon />
-		</wa-button>
+		</button>
 	{:else}
-		<wa-button
-			appearance="plain"
-			disabled
-			size="small"
-			title="No notes available"
-			variant="neutral"
-		>
+		<button appearance="plain" disabled size="small" title="No notes available" variant="neutral">
 			<NotepadTextDashedIcon />
-		</wa-button>
+		</button>
 	{/if}
 
-	<wa-popover distance={10} for={popoverId} placement="bottom">
+	<popover distance={10} for={popoverId} placement="bottom">
 		<article>
 			<header>
 				<h6>{project_title}</h6>
@@ -45,16 +36,10 @@
 			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 			{@html value}
 		</article>
-	</wa-popover>
+	</popover>
 </div>
 
 <style>
-	/* https://github.com/shoelace-style/webawesome/discussions/1520#discussioncomment-15013951 */
-	wa-button[appearance='plain']::part(base) {
-		height: auto;
-		padding: 0;
-	}
-
 	article :global {
 		a {
 			color: #0071ec;

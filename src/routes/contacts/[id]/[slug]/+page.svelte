@@ -1,8 +1,4 @@
 <script lang="ts">
-	import '@awesome.me/webawesome/dist/components/button/button.js';
-	import '@awesome.me/webawesome/dist/components/card/card.js';
-	import '@awesome.me/webawesome/dist/components/tooltip/tooltip.js';
-	import '@awesome.me/webawesome/dist/styles/themes/default.css';
 	import type { PageData } from './$types';
 
 	import ContactLink from '$lib/components/ContactLink.svelte';
@@ -99,9 +95,9 @@
 	}
 </script>
 
-<wa-card appearance="outlined">
-	<h1 class="text-2xl font-bold" slot="header">{contact.display_name}</h1>
-	<wa-button appearance="plain" slot="header-actions"> Edit </wa-button>
+<card appearance="outlined">
+	<h1 class="text-2xl font-bold">{contact.display_name}</h1>
+	<button appearance="plain"> Edit </button>
 
 	<div data-slot="content" class="space-y-2">
 		<div>
@@ -146,9 +142,9 @@
 		{/if}
 	</div>
 
-	<div class="text-xs text-gray-500" slot="footer">
+	<div class="text-xs text-gray-500">
 		Contact added to database {createdIso(contact.created_at)} / Last modified {formatUpdated(
 			contact.updated_at
 		)}
 	</div>
-</wa-card>
+</card>

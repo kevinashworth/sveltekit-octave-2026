@@ -28,8 +28,3 @@
 		color: yellow;
 	}
 }
-
-/* Web Awesome overrides */
-:root {
-	--wa-space-scale: 0.5;
-}
