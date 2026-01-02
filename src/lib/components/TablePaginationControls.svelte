@@ -42,8 +42,7 @@
 				{#each ALLOWED_PAGE_SIZES as size (size)}
 					<option
 						value={size}
-						title="show {size} {size === 1 ? itemType : `${itemType}s`} per page"
-					>
+						title="show {size} {size === 1 ? itemType : `${itemType}s`} per page">
 						{size}
 					</option>
 				{/each}
@@ -59,8 +58,7 @@
 				<a
 					href={urlFor({ page: currentPage - 1 })}
 					class="btn preset-tonal btn-sm"
-					title="Previous page"
-				>
+					title="Previous page">
 					<ArrowLeftIcon class="size-4" />
 				</a>
 			{:else}
@@ -91,8 +89,7 @@
 				<a
 					href={urlFor({ page: currentPage + 1 })}
 					class="btn preset-tonal btn-sm"
-					title="Next page"
-				>
+					title="Next page">
 					<ArrowRightIcon class="size-4" />
 				</a>
 			{:else}

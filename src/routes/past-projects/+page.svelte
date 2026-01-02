@@ -253,12 +253,11 @@
 		<h1>Past Projects</h1>
 		<div class="relative max-w-sm flex-1">
 			<div
-				class="pointer-events-none absolute top-1/2 right-3 left-3 -translate-y-1/2 text-gray-400"
-			>
+				class="pointer-events-none absolute top-1/2 right-3 left-3 -translate-y-1/2 text-gray-400">
 				{#if changeInProgress}
 					<div
-						class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"
-					></div>
+						class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent">
+					</div>
 				{:else}
 					<SearchIcon class="h-4 w-4" />
 				{/if}
@@ -270,11 +269,9 @@
 				oninput={performSearch}
 				onkeydown={handleSearchKeydown}
 				placeholder="Search past projects..."
-				type="text"
-			/>
+				type="text" />
 			<div
-				class="pointer-events-none absolute top-1/2 right-3 flex -translate-y-1/2 items-center gap-1 text-xs text-gray-400"
-			>
+				class="pointer-events-none absolute top-1/2 right-3 flex -translate-y-1/2 items-center gap-1 text-xs text-gray-400">
 				{#if !searchInput}
 					<span>{modifierKeyPrefix}</span>
 					<span>/</span>
@@ -284,17 +281,14 @@
 				<button
 					class="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
 					onclick={clearSearch}
-					title="Clear search"
-				>
+					title="Clear search">
 					<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
 						><path
 							d="M18 6L6 18M6 6l12 12"
 							stroke="currentColor"
 							stroke-width="2"
 							stroke-linecap="round"
-							stroke-linejoin="round"
-						/></svg
-					>
+							stroke-linejoin="round" /></svg>
 				</button>
 			{/if}
 		</div>
@@ -312,9 +306,8 @@
 			<div class="relative table-wrap rounded-md border border-surface-200-800">
 				<!-- Loading overlay -->
 				{#if changeInProgress}
-					<div
-						class="absolute inset-0 z-10 bg-white/50 backdrop-blur-[0.5px] transition-opacity"
-					></div>
+					<div class="absolute inset-0 z-10 bg-white/50 backdrop-blur-[0.5px] transition-opacity">
+					</div>
 				{/if}
 				{#if browser && table}
 					<!-- Client-side rendered table with TanStack Table -->
@@ -345,8 +338,7 @@
 														<ArrowDownIcon class="ml-1 inline h-6 w-6 text-secondary-500" />
 													{:else if canSort}
 														<ArrowDownIcon
-															class="ml-1 inline h-6 w-6 opacity-0 group-hover:opacity-30"
-														/>
+															class="ml-1 inline h-6 w-6 opacity-0 group-hover:opacity-30" />
 													{/if}
 												{:else if sortState === 'asc'}
 													<ArrowDownAZIcon class="ml-1 inline h-6 w-6 text-secondary-500" />
@@ -354,8 +346,7 @@
 													<ArrowUpZAIcon class="ml-1 inline h-6 w-6 text-secondary-500" />
 												{:else if canSort}
 													<ArrowDownAZIcon
-														class="ml-1 inline h-6 w-6 opacity-0 group-hover:opacity-30"
-													/>
+														class="ml-1 inline h-6 w-6 opacity-0 group-hover:opacity-30" />
 												{/if}
 											</button>
 										</th>
@@ -423,8 +414,7 @@
 					const firstProjectIndex = (paginationSettings.page - 1) * pageSize;
 					const newPage = Math.floor(firstProjectIndex / newPageSize) + 1;
 					await navigateTo({ pageSize: newPageSize, page: newPage });
-				}}
-			/>
+				}} />
 		</div>
 	{/if}
 </div>

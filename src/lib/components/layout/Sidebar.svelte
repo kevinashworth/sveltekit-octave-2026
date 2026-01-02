@@ -75,8 +75,7 @@
 			'top-0 max-h-screen': !hasHeader && hasFooter,
 			'top-0 min-h-screen': !hasHeader && !hasFooter
 		}
-	]}
->
+	]}>
 	<Navigation layout="sidebar" class="flex h-full w-fit flex-col gap-4">
 		<Navigation.Content class="flex-1 overflow-y-auto">
 			<Navigation.Group>
@@ -95,8 +94,7 @@
 							<Navigation.TriggerAnchor
 								href={navHrefs.get(link.href) ?? link.href}
 								title={link.label}
-								aria-label={link.label}
-							>
+								aria-label={link.label}>
 								<link.icon class="size-5" />
 								<Navigation.TriggerText class="text-sm">{link.label}</Navigation.TriggerText>
 							</Navigation.TriggerAnchor>
