@@ -409,11 +409,7 @@
 									<td>{project.project_type ?? ''}</td>
 									<td>{project.shooting_location ?? ''}</td>
 									<td>
-										<NoteCell
-											value={project.html_notes}
-											id={project.id}
-											project_title={project.project_title}
-										/>
+										<NoteCell value={project.html_notes} project_title={project.project_title} />
 									</td>
 									<td>{project.status ?? ''}</td>
 									<td>

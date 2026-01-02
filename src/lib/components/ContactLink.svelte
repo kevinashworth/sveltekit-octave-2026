@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
 	import {
 		DatabaseIcon,
 		FacebookIcon,
@@ -52,18 +54,20 @@
 	const IconComponent = $derived(getIconComponent(link.platform_name));
 </script>
 
-<div>
-	<button appearance="filled" href={link.profile_link} id={buttonId} size="small" variant="brand">
-		<div class="flex items-center gap-1">
-			<IconComponent />
-			{#if showText}
-				<span class="text-xs">{link.platform_name}</span>
-			{/if}
-		</div>
-	</button>
-	<tooltip for={buttonId} placement="bottom-start" style="--max-width: 920px;">
+<Tooltip.Root>
+	<Tooltip.Trigger>
+		<Button href={link.profile_link} id={buttonId} size="sm">
+			<div class="flex items-center gap-1">
+				<IconComponent />
+				{#if showText}
+					<span class="text-xs">{link.platform_name}</span>
+				{/if}
+			</div>
+		</Button>
+	</Tooltip.Trigger>
+	<Tooltip.Content>
 		<div class="text-sm text-nowrap">
 			{link.platform_name}<br />{link.profile_link}
 		</div>
-	</tooltip>
-</div>
+	</Tooltip.Content>
+</Tooltip.Root>

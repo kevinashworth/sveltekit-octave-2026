@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import type { PageData } from './$types';
 
 	import ContactLink from '$lib/components/ContactLink.svelte';
@@ -95,56 +97,62 @@
 	}
 </script>
 
-<card appearance="outlined">
-	<h1 class="text-2xl font-bold">{contact.display_name}</h1>
-	<button appearance="plain"> Edit </button>
+<Card.Root>
+	<Card.Header>
+		<Card.Title><h1 class="text-2xl font-bold">{contact.display_name}</h1></Card.Title>
+		<Card.Action>
+			<Button>Edit</Button>
+		</Card.Action>
+	</Card.Header>
+	<Card.Content>
+		<div class="space-y-2">
+			<div>
+				<strong>{contact.first_name ?? '—'} {contact.last_name ?? '—'}</strong>
+				<div>{contact.title ?? '—'}</div>
+				<hr class="my-1 text-gray-100" />
+			</div>
 
-	<div data-slot="content" class="space-y-2">
-		<div>
-			<strong>{contact.first_name ?? '—'} {contact.last_name ?? '—'}</strong>
-			<div>{contact.title ?? '—'}</div>
-			<hr class="my-1 text-gray-100" />
+			{#if contact.html_body}
+				<div>
+					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+					<div>{@html contact.html_body}</div>
+				</div>
+			{/if}
+
+			{#if contact.addresses && contact.addresses.length}
+				<div>
+					<h3 class="font-semibold">
+						{pluralize(contact.addresses?.length ?? 0, 'Address', 'Addresses')}
+					</h3>
+					<div class="mt-2">
+						{#each contact.addresses as addr (addr.id)}
+							<div class="text-sm font-semibold text-gray-600">
+								{addr.address_type ?? addr.addressType}
+							</div>
+							<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+							<div class="text-sm text-gray-600">{@html formatAddress(addr)}</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			{#if contact.links && contact.links.length}
+				<div>
+					<h3 class="font-semibold">Links</h3>
+					<div class="flex flex-wrap gap-1">
+						{#each contact.links as link (link.id)}
+							<ContactLink {link} />
+						{/each}
+					</div>
+				</div>
+			{/if}
 		</div>
-
-		{#if contact.html_body}
-			<div>
-				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-				<div>{@html contact.html_body}</div>
-			</div>
-		{/if}
-
-		{#if contact.addresses && contact.addresses.length}
-			<div>
-				<h3 class="font-semibold">
-					{pluralize(contact.addresses?.length ?? 0, 'Address', 'Addresses')}
-				</h3>
-				<div class="mt-2">
-					{#each contact.addresses as addr (addr.id)}
-						<div class="text-sm font-semibold text-gray-600">
-							{addr.address_type ?? addr.addressType}
-						</div>
-						<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-						<div class="text-sm text-gray-600">{@html formatAddress(addr)}</div>
-					{/each}
-				</div>
-			</div>
-		{/if}
-
-		{#if contact.links && contact.links.length}
-			<div>
-				<h3 class="font-semibold">Links</h3>
-				<div class="flex flex-wrap gap-1">
-					{#each contact.links as link (link.id)}
-						<ContactLink {link} />
-					{/each}
-				</div>
-			</div>
-		{/if}
-	</div>
-
-	<div class="text-xs text-gray-500">
-		Contact added to database {createdIso(contact.created_at)} / Last modified {formatUpdated(
-			contact.updated_at
-		)}
-	</div>
-</card>
+	</Card.Content>
+	<Card.Footer>
+		<div class="text-xs text-gray-500">
+			Contact added to database {createdIso(contact.created_at)} / Last modified {formatUpdated(
+				contact.updated_at
+			)}
+		</div>
+	</Card.Footer>
+</Card.Root>

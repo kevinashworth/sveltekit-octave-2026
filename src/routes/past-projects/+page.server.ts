@@ -11,6 +11,7 @@ interface PastProject {
 	casting_company: string | null;
 	network: string | null;
 	project_type: Database['public']['Enums']['project_type'] | null;
+	html_notes: string | null;
 	status: Database['public']['Enums']['project_status'] | null;
 	updated_at: string | null;
 }

@@ -1,34 +1,26 @@
 <script lang="ts">
+	import * as Popover from '$lib/components/ui/popover/index.js';
 	import { NotepadTextDashedIcon, NotepadTextIcon } from '@lucide/svelte';
 
 	interface Props {
 		value: string | null | undefined; // HTML content
-		id: string | null;
 		project_title: string;
 	}
 
-	let { value, id = null, project_title }: Props = $props();
-	const popoverId = $derived(`popover-${id ? id : crypto.randomUUID()}`);
+	let { value, project_title }: Props = $props();
 </script>
 
-<div>
+<Popover.Root>
 	{#if value}
-		<button
-			appearance="plain"
-			id={popoverId}
-			size="small"
-			title="Click to see Notes"
-			variant="brand"
-		>
-			<NotepadTextIcon />
-		</button>
+		<Popover.Trigger>
+			<NotepadTextIcon class="text-blue-500" />
+		</Popover.Trigger>
 	{:else}
-		<button appearance="plain" disabled size="small" title="No notes available" variant="neutral">
-			<NotepadTextDashedIcon />
-		</button>
+		<div title="No notes available">
+			<NotepadTextDashedIcon class="text-gray-500" />
+		</div>
 	{/if}
-
-	<popover distance={10} for={popoverId} placement="bottom">
+	<Popover.Content>
 		<article>
 			<header>
 				<h6>{project_title}</h6>
@@ -36,8 +28,8 @@
 			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 			{@html value}
 		</article>
-	</popover>
-</div>
+	</Popover.Content>
+</Popover.Root>
 
 <style>
 	article :global {
