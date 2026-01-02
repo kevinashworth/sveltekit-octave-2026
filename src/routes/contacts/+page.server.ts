@@ -22,7 +22,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		// Build the base query
 		let query = supabase
 			.from('contacts')
-			.select('id, first_name, last_name, updated_at, the_address, address_string', {
+			.select('id, first_name, last_name, slug, updated_at, address_string', {
 				count: 'exact'
 			});
 

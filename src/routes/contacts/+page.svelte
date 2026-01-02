@@ -12,7 +12,8 @@
 		createSvelteTable,
 		flexRender,
 		getCoreRowModel,
-		getSortedRowModel
+		getSortedRowModel,
+		renderComponent
 	} from '@tanstack/svelte-table';
 	import debounce from 'debounce';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
@@ -20,7 +21,9 @@
 
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { navigating } from '$app/state';
+	import ContactCell from '$lib/components/ContactCell.svelte';
 	import TablePaginationControls from '$lib/components/TablePaginationControls.svelte';
 	import { DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
 	import type { Database } from '$lib/database.types';
@@ -30,7 +33,6 @@
 	import type { PageData } from './$types';
 
 	type DbContact = Database['public']['Tables']['contacts']['Row'];
-	type PartialDbContact = Partial<DbContact>;
 
 	let { data }: { data: PageData } = $props();
 	const contacts = $derived(data.contacts);
@@ -141,10 +143,19 @@
 		};
 	});
 
-	const columns: ColumnDef<PartialDbContact>[] = [
+	const columns: ColumnDef<DbContact>[] = [
 		{
 			accessorKey: 'first_name',
 			header: 'First Name',
+			cell: (info) => {
+				const props = {
+					id: info.row.original.id,
+					slug: info.row.original.slug,
+					first: info.getValue<string | null>(),
+					last: info.row.original.last_name
+				};
+				return renderComponent(ContactCell, props);
+			},
 			sortingFn: 'alphanumeric'
 		},
 		{
@@ -166,7 +177,7 @@
 	];
 
 	const tableOptions = $derived.by(() => {
-		return writable<TableOptions<PartialDbContact>>({
+		return writable<TableOptions<DbContact>>({
 			data: contacts,
 			columns,
 			state: {
@@ -322,7 +333,17 @@
 						<tbody>
 							{#each contacts as contact, i (contact.id)}
 								<tr class:bg-surface-100={i % 2 === 0}>
-									<td>{contact.first_name}</td>
+									<td>
+										<a
+											class="text-primary-600 hover:underline"
+											href={resolve(`/contacts/${contact.id}/${contact.slug}`)}
+										>
+											{contact.first_name}
+											{#if contact.last_name}
+												{contact.last_name}
+											{/if}
+										</a>
+									</td>
 									<td>{contact.last_name}</td>
 									<td>{contact.address_string}</td>
 									<td>
