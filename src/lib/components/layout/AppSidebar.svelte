@@ -1,8 +1,6 @@
 <script lang="ts">
-	import * as NavigationMenu from '$lib/components/ui/navigation-menu/index.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
-	0;
 	import { getPaginationState } from '$lib/stores/pagination-state.svelte';
 	import { cn } from '$lib/utils';
 	import {
@@ -14,7 +12,6 @@
 		LogInIcon,
 		TrendingUpIcon
 	} from '@lucide/svelte';
-	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 
 	const navItems = {

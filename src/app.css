@@ -1,34 +1,6 @@
 @import 'tailwindcss';
 
-@import '@skeletonlabs/skeleton';
-@import '@skeletonlabs/skeleton-svelte';
-@import '@skeletonlabs/skeleton/themes/cerberus';
-@import '@skeletonlabs/skeleton/themes/concord';
-@import '@skeletonlabs/skeleton/themes/wintry';
 @import 'tw-animate-css';
-
-[data-theme='cerberus'] {
-	--spacing: 0.22rem;
-	--radius-container: 0.375rem;
-	--heading-font-weight: bolder;
-}
-
-/** Target only Cerberus h1 and .h1 elements. */
-[data-theme='cerberus'] h1,
-.h1 {
-	color: red;
-	@variant dark {
-		color: green;
-	}
-}
-/** Target only Wintry h1 and .h1 elements. */
-[data-theme='wintry'] h1,
-.h1 {
-	color: blue;
-	@variant dark {
-		color: yellow;
-	}
-}
 
 @custom-variant dark (&:is(.dark *));
 
