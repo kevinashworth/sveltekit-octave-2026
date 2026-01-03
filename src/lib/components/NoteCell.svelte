@@ -12,21 +12,25 @@
 
 <Popover.Root>
 	{#if value}
-		<Popover.Trigger>
+		<Popover.Trigger class="cursor-pointer">
 			<NotepadTextIcon class="text-blue-500" />
 		</Popover.Trigger>
 	{:else}
-		<div title="No notes available">
+		<Popover.Trigger>
 			<NotepadTextDashedIcon class="text-gray-500" />
-		</div>
+		</Popover.Trigger>
 	{/if}
 	<Popover.Content>
 		<article>
 			<header>
 				<h6>{project_title}</h6>
 			</header>
-			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-			{@html value}
+			{#if !value}
+				<p>No notes available.</p>
+			{:else}
+				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+				{@html value}
+			{/if}
 		</article>
 	</Popover.Content>
 </Popover.Root>

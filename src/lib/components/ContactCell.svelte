@@ -11,6 +11,6 @@
 	let { id, slug, first, last }: Props = $props();
 </script>
 
-<a class="text-primary-600 hover:underline" href={resolve(`/contacts/${id}/${slug}`)}>
+<a class="text-blue-600 hover:underline" href={resolve(`/contacts/${id}/${slug}`)}>
 	{first}{#if last}&nbsp;{last}{/if}
 </a>

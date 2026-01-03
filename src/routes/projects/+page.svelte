@@ -312,7 +312,7 @@
 	{:else}
 		<div class="space-y-4">
 			<!-- Table -->
-			<div class="table-wrap border-surface-200-800 relative rounded-md border">
+			<div class="relative rounded-md border border-gray-200">
 				<!-- Loading overlay -->
 				{#if changeInProgress}
 					<div class="absolute inset-0 z-10 bg-white/50 backdrop-blur-[0.5px] transition-opacity">
@@ -320,7 +320,7 @@
 				{/if}
 				{#if browser && table}
 					<!-- Client-side rendered table with TanStack Table -->
-					<table class="table">
+					<table class="table w-full">
 						<thead>
 							{#each $table.getHeaderGroups() as headerGroup (headerGroup.id)}
 								<tr>
@@ -364,9 +364,9 @@
 								</tr>
 							{/each}
 						</thead>
-						<tbody>
+						<tbody class="[&>tr]:hover:bg-gray-200">
 							{#each $table.getRowModel().rows as row, i (row.id)}
-								<tr class:bg-surface-100={i % 2 === 0}>
+								<tr class:bg-gray-100={i % 2 === 0}>
 									{#each row.getVisibleCells() as cell (cell.id)}
 										{@const Component = flexRender(cell.column.columnDef.cell, cell.getContext())}
 										<td>
@@ -379,7 +379,7 @@
 					</table>
 				{:else}
 					<!-- Server-side rendered table (fallback for SSR or when browser is false) -->
-					<table class="table-hover table w-full">
+					<table class="table w-full">
 						<thead>
 							<tr>
 								<th>Project Title</th>
@@ -393,9 +393,9 @@
 								<th>Updated</th>
 							</tr>
 						</thead>
-						<tbody>
+						<tbody class="[&>tr]:hover:bg-gray-200">
 							{#each projects as project, i (project.id)}
-								<tr class:bg-surface-100={i % 2 === 0}>
+								<tr class:bg-gray-100={i % 2 === 0}>
 									<td>{project.project_title}</td>
 									<td>{project.casting_company ?? ''}</td>
 									<td>{project.network ?? ''}</td>
@@ -439,5 +439,7 @@
 	td,
 	th {
 		font-size: smaller;
+		padding: 0.25rem;
+		text-align: left;
 	}
 </style>

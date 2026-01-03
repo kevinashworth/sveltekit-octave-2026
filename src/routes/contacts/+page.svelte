@@ -146,7 +146,7 @@
 	const columns: ColumnDef<DbContact>[] = [
 		{
 			accessorKey: 'first_name',
-			header: 'First Name',
+			header: 'Name',
 			cell: (info) => {
 				const props = {
 					id: info.row.original.id,
@@ -156,11 +156,6 @@
 				};
 				return renderComponent(ContactCell, props);
 			},
-			sortingFn: 'alphanumeric'
-		},
-		{
-			accessorKey: 'last_name',
-			header: 'Last Name',
 			sortingFn: 'alphanumeric'
 		},
 		{
@@ -248,7 +243,7 @@
 	{:else}
 		<div class="space-y-4">
 			<!-- Table -->
-			<div class="table-wrap border-surface-200-800 relative rounded-md border">
+			<div class="relative rounded-md border border-gray-200">
 				<!-- Loading overlay -->
 				{#if changeInProgress}
 					<div class="absolute inset-0 z-10 bg-white/50 backdrop-blur-[0.5px] transition-opacity">
@@ -256,7 +251,7 @@
 				{/if}
 				{#if browser && table}
 					<!-- Client-side rendered table with TanStack Table -->
-					<table class="table">
+					<table class="table w-full">
 						<thead>
 							{#each $table.getHeaderGroups() as headerGroup (headerGroup.id)}
 								<tr>
@@ -299,9 +294,9 @@
 								</tr>
 							{/each}
 						</thead>
-						<tbody>
+						<tbody class="[&>tr]:hover:bg-gray-200">
 							{#each $table.getRowModel().rows as row, i (row.id)}
-								<tr class:bg-surface-100={i % 2 === 0}>
+								<tr class:bg-gray-100={i % 2 === 0}>
 									{#each row.getVisibleCells() as cell (cell.id)}
 										{@const Component = flexRender(cell.column.columnDef.cell, cell.getContext())}
 										<td>
@@ -314,29 +309,24 @@
 					</table>
 				{:else}
 					<!-- Server-side rendered table (fallback for SSR or when browser is false) -->
-					<table class="table-hover table w-full">
+					<table class="table w-full">
 						<thead>
 							<tr>
-								<th>First Name</th>
-								<th>Last Name</th>
+								<th>Name</th>
 								<th>Address</th>
 								<th>Updated</th>
 							</tr>
 						</thead>
-						<tbody>
+						<tbody class="[&>tr]:hover:bg-gray-200">
 							{#each contacts as contact, i (contact.id)}
-								<tr class:bg-surface-100={i % 2 === 0}>
+								<tr class:bg-gray-100={i % 2 === 0}>
 									<td>
 										<a
-											class="text-primary-600 hover:underline"
+											class="text-blue-600 hover:underline"
 											href={resolve(`/contacts/${contact.id}/${contact.slug}`)}>
-											{contact.first_name}
-											{#if contact.last_name}
-												{contact.last_name}
-											{/if}
+											{contact.first_name}&nbsp;{contact.last_name}
 										</a>
 									</td>
-									<td>{contact.last_name}</td>
 									<td>{contact.address_string}</td>
 									<td>
 										{contact.updated_at
@@ -371,3 +361,11 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	td,
+	th {
+		padding: 0.25rem;
+		text-align: left;
+	}
+</style>
