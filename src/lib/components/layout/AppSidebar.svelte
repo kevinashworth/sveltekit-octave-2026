@@ -89,6 +89,7 @@
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet child({ props })}
+								<!-- eslint-disable-next-line  @typescript-eslint/no-explicit-any -->
 								<a href={resolve(navHrefs.get('/') ?? ('/' as any))} {...props}>
 									<HouseIcon class="size-5" />
 									<span>Home</span>
@@ -108,6 +109,7 @@
 							<Sidebar.MenuItem>
 								<Sidebar.MenuButton>
 									{#snippet child({ props })}
+										<!-- eslint-disable-next-line  @typescript-eslint/no-explicit-any -->
 										<a href={resolve(navHrefs.get(link.href) ?? (link.href as any))} {...props}>
 											<link.icon />
 											<span>{link.label}</span>

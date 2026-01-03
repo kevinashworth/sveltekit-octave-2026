@@ -1,5 +1,4 @@
 <script lang="ts">
-	/* eslint-disable svelte/no-navigation-without-resolve */
 	import * as ButtonGroup from '$lib/components/ui/button-group/index.ts';
 	import { Button } from '$lib/components/ui/button/index.ts';
 	import { ALLOWED_PAGE_SIZES, DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
