@@ -1,7 +1,7 @@
 {
 	"name": "sveltekit-octave-2026",
 	"private": true,
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
@@ -24,6 +24,7 @@
 		"@sveltejs/kit": "2.49.2",
 		"@sveltejs/vite-plugin-svelte": "6.2.1",
 		"@tailwindcss/vite": "^4.1.17",
+		"@tanstack/table-core": "8.21.3",
 		"@types/node": "^22",
 		"bits-ui": "2.14.4",
 		"clsx": "2.1.1",
