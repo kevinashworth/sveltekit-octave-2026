@@ -2,27 +2,27 @@
 	import { resolve } from '$app/paths';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
-	import { getPaginationState } from '$lib/stores/pagination-state.svelte';
 	import {
-		BellIcon,
+		// BellIcon,
 		BuildingIcon,
 		CameraIcon,
 		ContactIcon,
-		HouseIcon,
-		LogInIcon,
-		TrendingUpIcon
+		HouseIcon
 	} from '@lucide/svelte';
 	import { SvelteMap } from 'svelte/reactivity';
+	import { queryParameters } from 'sveltekit-search-params';
 
 	const navItems = {
-		authentication: [{ label: 'Sign In / Sign Up', href: '/login', icon: LogInIcon }],
-		main: [
-			{ label: 'Latest Updates', href: '/latest', icon: BellIcon },
-			{ label: 'Trends', href: '/trends', icon: TrendingUpIcon }
-		],
+		// home: [{ label: 'Home', href: '/', icon: HouseIcon }],
+		// authentication: [{ label: 'Sign In / Sign Up', href: '/login', icon: LogInIcon }],
+		// main: [
+		// 	{ label: 'Latest Updates', href: '/latest', icon: BellIcon },
+		// 	{ label: 'Trends', href: '/trends', icon: TrendingUpIcon }
+		// ],
 		information: [
 			{ label: 'Contacts', href: '/contacts', icon: ContactIcon },
 			{ label: 'Offices', href: '/offices', icon: BuildingIcon },
+			{ label: 'Offices2', href: '/offices2', icon: BuildingIcon },
 			{ label: 'Projects', href: '/projects', icon: CameraIcon },
 			{ label: 'Past Projects', href: '/past-projects', icon: CameraIcon }
 		]
@@ -47,11 +47,17 @@
 		// ]
 	};
 
-	const paginationState = getPaginationState();
+	const params = queryParameters({
+		pageSize: {
+			encode: (value: number) => value.toString(),
+			decode: (value: string | null) => (value ? parseInt(value) : null),
+			defaultValue: DEFAULT_PAGE_SIZE
+		}
+	});
+	const pageSize = $derived(params.pageSize);
 
 	// derived (reactive) map of hrefs that updates when pageSize changes
 	const navHrefs = $derived.by(() => {
-		const currentPageSize = paginationState.pageSize;
 		const map = new SvelteMap<string, string>();
 
 		// Build href map for all nav items
@@ -59,12 +65,14 @@
 			.flat()
 			.forEach((link) => {
 				let href = link.href;
-				// add pageSize to Contacts, Offices, and Projects
+				// add pageSize to Contacts, Offices, Projects, Past Projects links
 				if (
-					(href === '/contacts' || href === '/offices' || href === '/projects') &&
-					currentPageSize !== DEFAULT_PAGE_SIZE
+					href === '/contacts' ||
+					href === '/offices' ||
+					href === '/projects' ||
+					href === '/past-projects'
 				) {
-					href = `${href}?pageSize=${currentPageSize}`;
+					href = `${href}?pageSize=${pageSize}`;
 				}
 				map.set(link.href, href);
 			});
@@ -81,7 +89,7 @@
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet child({ props })}
-								<a href={resolve(navHrefs.get('/') ?? '/')} {...props}>
+								<a href={resolve(navHrefs.get('/') ?? ('/' as any))} {...props}>
 									<HouseIcon class="size-5" />
 									<span>Home</span>
 								</a>
@@ -100,7 +108,7 @@
 							<Sidebar.MenuItem>
 								<Sidebar.MenuButton>
 									{#snippet child({ props })}
-										<a href={resolve(navHrefs.get(link.href) ?? link.href)} {...props}>
+										<a href={resolve(navHrefs.get(link.href) ?? (link.href as any))} {...props}>
 											<link.icon />
 											<span>{link.label}</span>
 										</a>

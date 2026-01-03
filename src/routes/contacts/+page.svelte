@@ -24,10 +24,10 @@
 	import { resolve } from '$app/paths';
 	import { navigating } from '$app/state';
 	import ContactCell from '$lib/components/ContactCell.svelte';
+	import DateCell from '$lib/components/DateCell.svelte';
 	import TablePaginationControls from '$lib/components/TablePaginationControls.svelte';
 	import { DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
 	import type { Database } from '$lib/database.types';
-	import { getPaginationState } from '$lib/stores/pagination-state.svelte';
 	import { formatDate } from '$lib/utils/date';
 	import { getModifierKeyPrefix } from '$lib/utils/keyboard';
 	import type { PageData } from './$types';
@@ -39,9 +39,7 @@
 	const length = $derived(data.contacts.length);
 	const totalCount = $derived(data.totalCount);
 	const paginationSettings = $derived(data.paginationSettings);
-
-	const paginationState = getPaginationState();
-	const pageSize = paginationState.pageSize;
+	const pageSize = $derived(data.pageSize);
 
 	const searchQuery = $derived(data.search ?? '');
 	const modifierKeyPrefix = getModifierKeyPrefix();
@@ -329,13 +327,7 @@
 									</td>
 									<td>{contact.address_string}</td>
 									<td>
-										{contact.updated_at
-											? new Date(contact.updated_at).toLocaleDateString('en-US', {
-													year: 'numeric',
-													month: 'short',
-													day: 'numeric'
-												})
-											: 'N/A'}
+										<DateCell value={contact.updated_at} />
 									</td>
 								</tr>
 							{/each}
@@ -347,12 +339,10 @@
 			<TablePaginationControls
 				currentPage={paginationSettings.page}
 				totalPages={paginationSettings.amount}
-				{pageSize}
 				{totalCount}
 				itemType="contact"
 				{urlFor}
 				onPageSizeChange={async (newPageSize) => {
-					paginationState.setPageSize(newPageSize);
 					const firstContactIndex = (paginationSettings.page - 1) * pageSize;
 					const newPage = Math.floor(firstContactIndex / newPageSize) + 1;
 					await navigateTo({ pageSize: newPageSize, page: newPage });
@@ -365,6 +355,7 @@
 <style>
 	td,
 	th {
+		font-size: smaller;
 		padding: 0.25rem;
 		text-align: left;
 	}

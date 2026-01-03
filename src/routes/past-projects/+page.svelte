@@ -25,7 +25,6 @@
 	import NoteCell from '$lib/components/NoteCell.svelte';
 	import TablePaginationControls from '$lib/components/TablePaginationControls.svelte';
 	import { DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
-	import { getPaginationState } from '$lib/stores/pagination-state.svelte';
 	import { formatDate } from '$lib/utils/date';
 	import { getModifierKeyPrefix } from '$lib/utils/keyboard';
 	import type { PageData } from './$types';
@@ -37,14 +36,12 @@
 	const length = $derived(data.projects.length);
 	const totalCount = $derived(data.totalCount);
 	const paginationSettings = $derived(data.paginationSettings);
+	const pageSize = $derived(data.pageSize);
 
-	const paginationState = getPaginationState();
-	const pageSize = paginationState.pageSize;
-
-	const searchQuery = $derived(data.search ?? '');
 	const sortBy = $derived(data.sortBy ?? 'updated_at');
 	const sortOrder = $derived(data.sortOrder ?? 'desc');
 	const modifierKeyPrefix = getModifierKeyPrefix();
+	const searchQuery = $derived(data.search ?? '');
 	let searchInput = $derived(searchQuery);
 
 	const sorting = $derived<SortingState>([{ id: sortBy, desc: sortOrder === 'desc' }]);
@@ -120,7 +117,7 @@
 	) {
 		// Always include current pageSize unless explicitly provided
 		const finalParams = {
-			pageSize: paginationState.pageSize,
+			pageSize: pageSize,
 			...params
 		};
 		const url = urlFor(finalParams);
@@ -400,12 +397,10 @@
 			<TablePaginationControls
 				currentPage={paginationSettings.page}
 				totalPages={paginationSettings.amount}
-				{pageSize}
 				{totalCount}
 				itemType="past project"
 				{urlFor}
 				onPageSizeChange={async (newPageSize) => {
-					paginationState.setPageSize(newPageSize);
 					const firstProjectIndex = (paginationSettings.page - 1) * pageSize;
 					const newPage = Math.floor(firstProjectIndex / newPageSize) + 1;
 					await navigateTo({ pageSize: newPageSize, page: newPage });

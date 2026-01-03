@@ -21,9 +21,9 @@
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { navigating } from '$app/state';
+	import DateCell from '$lib/components/DateCell.svelte';
 	import TablePaginationControls from '$lib/components/TablePaginationControls.svelte';
 	import { DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
-	import { getPaginationState } from '$lib/stores/pagination-state.svelte';
 	import { formatDate } from '$lib/utils/date';
 	import { getModifierKeyPrefix } from '$lib/utils/keyboard';
 	import type { PageData } from './$types';
@@ -40,12 +40,10 @@
 	const length = $derived(data.offices.length);
 	const totalCount = $derived(data.totalCount);
 	const paginationSettings = $derived(data.paginationSettings);
+	const pageSize = $derived(data.pageSize);
 
-	const paginationState = getPaginationState();
-	const pageSize = paginationState.pageSize;
-
-	const searchQuery = $derived(data.search ?? '');
 	const modifierKeyPrefix = getModifierKeyPrefix();
+	const searchQuery = $derived(data.search ?? '');
 	let searchInput = $derived(searchQuery);
 
 	let sorting = $state<SortingState>([{ id: 'updated_at', desc: true }]);
@@ -307,15 +305,9 @@
 							{#each offices as office (office.id)}
 								<tr>
 									<td>{office.display_name}</td>
-									<td>{office.formattedAddress || ''}</td>
+									<td>{office.formattedAddress}</td>
 									<td>
-										{office.updated_at
-											? new Date(office.updated_at).toLocaleDateString('en-US', {
-													year: 'numeric',
-													month: 'short',
-													day: 'numeric'
-												})
-											: 'N/A'}
+										<DateCell value={office.updated_at} />
 									</td>
 								</tr>
 							{/each}
@@ -327,12 +319,10 @@
 			<TablePaginationControls
 				currentPage={paginationSettings.page}
 				totalPages={paginationSettings.amount}
-				{pageSize}
 				{totalCount}
 				itemType="office"
 				{urlFor}
 				onPageSizeChange={async (newPageSize) => {
-					paginationState.setPageSize(newPageSize);
 					const firstOfficeIndex = (paginationSettings.page - 1) * pageSize;
 					const newPage = Math.floor(firstOfficeIndex / newPageSize) + 1;
 					await navigateTo({ pageSize: newPageSize, page: newPage });
