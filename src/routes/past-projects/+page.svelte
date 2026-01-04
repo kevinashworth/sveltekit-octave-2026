@@ -28,7 +28,6 @@
 	import {
 		type GoToOptions,
 		type SearchParamValues,
-		buildUrl,
 		navigateTo as navigateToUtil
 	} from '$lib/utils/navigate';
 	import type { PageData } from './$types';
@@ -356,21 +355,12 @@
 			</div>
 
 			<TablePaginationControls
-				currentPage={paginationSettings.page}
-				totalPages={paginationSettings.amount}
+				{paginationSettings}
 				{totalCount}
 				itemType="past project"
-				urlFor={(p) =>
-					buildUrl(
-						p,
-						{ search: searchQuery, page: paginationSettings.page, pageSize, sortBy, sortOrder },
-						'/past-projects'
-					)}
-				onPageSizeChange={async (newPageSize) => {
-					const firstProjectIndex = (paginationSettings.page - 1) * pageSize;
-					const newPage = Math.floor(firstProjectIndex / newPageSize) + 1;
-					await navigateTo({ pageSize: newPageSize, page: newPage });
-				}} />
+				basePath="/past-projects"
+				urlState={{ search: searchQuery, pageSize, sortBy, sortOrder }}
+				onNavigate={navigateTo} />
 		</div>
 	{/if}
 </div>

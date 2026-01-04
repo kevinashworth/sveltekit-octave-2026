@@ -26,7 +26,6 @@
 	import { formatDate } from '$lib/utils/date';
 	import { getModifierKeyPrefix } from '$lib/utils/keyboard';
 	import {
-		buildUrl,
 		navigateTo as navigateToUtil,
 		type GoToOptions,
 		type SearchParamValues
@@ -327,21 +326,12 @@
 			</div>
 
 			<TablePaginationControls
-				currentPage={paginationSettings.page}
-				totalPages={paginationSettings.amount}
+				{paginationSettings}
 				{totalCount}
 				itemType="contact"
-				urlFor={(p) =>
-					buildUrl(
-						p,
-						{ search: searchQuery, page: paginationSettings.page, pageSize, sortBy, sortOrder },
-						'/contacts'
-					)}
-				onPageSizeChange={async (newPageSize) => {
-					const firstContactIndex = (paginationSettings.page - 1) * pageSize;
-					const newPage = Math.floor(firstContactIndex / newPageSize) + 1;
-					await navigateTo({ pageSize: newPageSize, page: newPage });
-				}} />
+				basePath="/contacts"
+				urlState={{ search: searchQuery, pageSize, sortBy, sortOrder }}
+				onNavigate={navigateTo} />
 			<!-- <pre>{JSON.stringify($table.getState().sorting, null, 2)}</pre> -->
 		</div>
 	{/if}

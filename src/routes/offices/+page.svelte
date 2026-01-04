@@ -25,8 +25,8 @@
 	import { formatDate } from '$lib/utils/date';
 	import { getModifierKeyPrefix } from '$lib/utils/keyboard';
 	import {
+		type GoToOptions,
 		type SearchParamValues,
-		buildUrl,
 		navigateTo as navigateToUtil
 	} from '$lib/utils/navigate';
 	import type { PageData } from './$types';
@@ -320,21 +320,12 @@
 			</div>
 
 			<TablePaginationControls
-				currentPage={paginationSettings.page}
-				totalPages={paginationSettings.amount}
+				{paginationSettings}
 				{totalCount}
 				itemType="office"
-				urlFor={(p) =>
-					buildUrl(
-						p,
-						{ search: searchQuery, page: paginationSettings.page, pageSize, sortBy, sortOrder },
-						'/offices'
-					)}
-				onPageSizeChange={async (newPageSize) => {
-					const firstOfficeIndex = (paginationSettings.page - 1) * pageSize;
-					const newPage = Math.floor(firstOfficeIndex / newPageSize) + 1;
-					await navigateTo({ pageSize: newPageSize, page: newPage });
-				}} />
+				basePath="/offices"
+				urlState={{ search: searchQuery, pageSize, sortBy, sortOrder }}
+				onNavigate={navigateTo} />
 		</div>
 	{/if}
 </div>

@@ -2,24 +2,44 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as ButtonGroup from '$lib/components/ui/button-group';
 	import { ALLOWED_PAGE_SIZES, DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
+	import { buildUrl, type GoToOptions, type SearchParamValues } from '$lib/utils/navigate';
 	import { ArrowLeftIcon, ArrowRightIcon } from '@lucide/svelte';
 	import { queryParameters } from 'sveltekit-search-params';
 
 	interface Props {
-		currentPage: number;
-		totalPages: number;
+		paginationSettings: { page: number; amount: number; limit: number };
 		totalCount: number;
 		itemType: string;
-		urlFor: (params: { page?: number; pageSize?: number }) => string;
-		onPageSizeChange: (newPageSize: number) => void;
+		basePath: string;
+		urlState: {
+			search?: string;
+			pageSize: number;
+			sortBy?: string;
+			sortOrder?: string;
+		};
+		onNavigate: (params: SearchParamValues, options?: GoToOptions) => Promise<void>;
 	}
 
-	let { currentPage, totalPages, totalCount, itemType, urlFor, onPageSizeChange }: Props = $props();
+	let { paginationSettings, totalCount, itemType, basePath, urlState, onNavigate }: Props =
+		$props();
 
-	function handlePageSizeChange(e: Event) {
+	// Extract from paginationSettings
+	const currentPage = $derived(paginationSettings.page);
+	const totalPages = $derived(paginationSettings.amount);
+
+	// Build urlFor function internally
+	const urlFor = $derived.by(
+		() => (params: { page?: number; pageSize?: number }) =>
+			buildUrl(params, { ...urlState, page: currentPage }, basePath)
+	);
+
+	// Handle page size changes with proper first-item preservation
+	async function handlePageSizeChange(e: Event) {
 		const select = e.target as HTMLSelectElement;
 		const newPageSize = parseInt(select.value);
-		onPageSizeChange(newPageSize);
+		const firstItemIndex = (currentPage - 1) * urlState.pageSize;
+		const newPage = Math.floor(firstItemIndex / newPageSize) + 1;
+		await onNavigate({ pageSize: newPageSize, page: newPage });
 	}
 
 	const params = queryParameters(
