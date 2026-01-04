@@ -42,9 +42,9 @@
 	const paginationSettings = $derived(data.paginationSettings);
 	const pageSize = $derived(data.pageSize);
 
-	const searchQuery = $derived(data.search ?? '');
-	const modifierKeyPrefix = getModifierKeyPrefix();
-	let searchInput = $derived(searchQuery);
+	const search = $derived(data.search ?? '');
+	let searchInput = $derived(search);
+	let searchInputElement: HTMLInputElement;
 
 	const sortBy = $derived(data.sortBy ?? 'updated_at');
 	const sortOrder = $derived(data.sortOrder ?? 'desc');
@@ -53,12 +53,10 @@
 	// Track if we're loading from a search, page size, or sort change
 	const changeInProgress = $derived(isNavigationInProgress(navigating));
 
-	let searchInputElement: HTMLInputElement;
-
 	async function navigateTo(params: SearchParamValues, options: GoToOptions = {}) {
 		await navigateToUtil(
 			params,
-			{ search: searchQuery, page: paginationSettings.page, pageSize, sortBy, sortOrder },
+			{ search, page: paginationSettings.page, pageSize, sortBy, sortOrder },
 			'/contacts',
 			options
 		);
@@ -116,7 +114,6 @@
 
 	$effect(() => {
 		if (!browser) return;
-
 		window.addEventListener('keydown', handleGlobalKeydown);
 		return () => {
 			window.removeEventListener('keydown', handleGlobalKeydown);
@@ -189,13 +186,12 @@
 				onkeydown={handleSearchKeydown}
 				placeholder="Search contacts..."
 				type="text" />
-			<div
-				class="pointer-events-none absolute top-1/2 right-3 flex -translate-y-1/2 items-center gap-1 text-xs text-gray-400">
-				{#if !searchInput}
-					<span>{modifierKeyPrefix}</span>
-					<span>/</span>
-				{/if}
-			</div>
+			{#if !searchInput}
+				<div
+					class="absolute top-1/2 right-3 flex -translate-y-1/2 items-center gap-1 text-xs text-gray-400">
+					{getModifierKeyPrefix()} /
+				</div>
+			{/if}
 			{#if searchInput}
 				<button
 					class="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
@@ -321,7 +317,7 @@
 				{totalCount}
 				itemType="contact"
 				basePath="/contacts"
-				urlState={{ search: searchQuery, pageSize, sortBy, sortOrder }}
+				urlState={{ search, pageSize, sortBy, sortOrder }}
 				onNavigate={navigateTo} />
 			<!-- <pre>{JSON.stringify($table.getState().sorting, null, 2)}</pre> -->
 		</div>

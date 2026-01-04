@@ -98,11 +98,11 @@ export const load: PageServerLoad = async ({ url }) => {
 
 		return {
 			contacts,
-			totalCount: totalCount,
-			pageSize: pageSize,
+			totalCount,
+			pageSize,
 			currentPage: page,
 			paginationSettings,
-			search: search,
+			search,
 			sortBy,
 			sortOrder
 		};
@@ -117,14 +117,14 @@ export const load: PageServerLoad = async ({ url }) => {
 		return {
 			contacts: [],
 			totalCount: 0,
-			pageSize: pageSize,
+			pageSize,
 			currentPage: page,
 			paginationSettings: {
 				page: page,
 				amount: 0,
 				limit: 1
 			},
-			search: search,
+			search,
 			sortBy: 'updated_at',
 			sortOrder: 'desc',
 			error: error instanceof Error ? error.message : 'Unknown error'
