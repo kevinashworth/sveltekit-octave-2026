@@ -1,5 +1,6 @@
 import { goto } from '$app/navigation';
 import { DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
+import type { Navigation } from '@sveltejs/kit';
 import { SvelteURLSearchParams } from 'svelte/reactivity';
 
 export type NavOptions = { keepFocus?: boolean };
@@ -80,4 +81,26 @@ export async function navigateTo(
 	const finalParams: SearchParamValues = { pageSize: current.pageSize, ...next };
 	const url = buildUrl(finalParams, current, path);
 	await goto(url, options); // eslint-disable-line svelte/no-navigation-without-resolve
+}
+
+/**
+ * Check if a navigation is in progress and any of the specified URL params changed.
+ * Use with `$derived` to reactively track navigation state changes.
+ *
+ * @param navigation - The navigation object from `$app/state`
+ * @param params - Array of param names to check for changes (defaults to common table params)
+ */
+export function isNavigationInProgress(
+	navigation:
+		| Navigation
+		| null
+		| { from: null; to: null; type: null; willUnload: null; delta: null; complete: null },
+	params: string[] = ['search', 'pageSize', 'sortBy', 'sortOrder']
+): boolean {
+	if (!navigation || !navigation.from || !navigation.to) return false;
+
+	return params.some(
+		(param) =>
+			navigation.from?.url.searchParams.get(param) !== navigation.to?.url.searchParams.get(param)
+	);
 }

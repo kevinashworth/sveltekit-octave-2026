@@ -255,19 +255,16 @@ function handleSearchKeydown(e: KeyboardEvent) {
 
 ### Loading states
 
-Track navigation changes with `$app/state`:
+Track navigation changes using the centralized `isNavigationInProgress` utility:
 
 ```typescript
 import { navigating } from '$app/state';
+import { isNavigationInProgress } from '$lib/utils/navigate';
 
-const changeInProgress = $derived(
-  !!navigating &&
-  navigating.from?.url.searchParams.get('search') !==
-  navigating.to?.url.searchParams.get('search')
-);
+const changeInProgress = $derived(isNavigationInProgress(navigating));
 ```
 
-Show loading overlay:
+This checks if any of the common table params (search, pageSize, sortBy, sortOrder) changed during navigation. Show loading overlay:
 
 ```svelte
 {#if changeInProgress}

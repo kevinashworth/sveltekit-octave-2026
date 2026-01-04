@@ -25,9 +25,10 @@
 	import { formatDate } from '$lib/utils/date';
 	import { getModifierKeyPrefix } from '$lib/utils/keyboard';
 	import {
+		isNavigationInProgress,
+		navigateTo as navigateToUtil,
 		type GoToOptions,
-		type SearchParamValues,
-		navigateTo as navigateToUtil
+		type SearchParamValues
 	} from '$lib/utils/navigate';
 	import type { PageData } from './$types';
 
@@ -54,17 +55,7 @@
 	const sorting = $derived<SortingState>([{ id: sortBy, desc: sortOrder === 'desc' }]);
 
 	// Track if we're loading from a search, page size, or sort change
-	const changeInProgress = $derived(
-		!!navigating &&
-			(navigating.from?.url.searchParams.get('search') !==
-				navigating.to?.url.searchParams.get('search') ||
-				navigating.from?.url.searchParams.get('pageSize') !==
-					navigating.to?.url.searchParams.get('pageSize') ||
-				navigating.from?.url.searchParams.get('sortBy') !==
-					navigating.to?.url.searchParams.get('sortBy') ||
-				navigating.from?.url.searchParams.get('sortOrder') !==
-					navigating.to?.url.searchParams.get('sortOrder'))
-	);
+	const changeInProgress = $derived(isNavigationInProgress(navigating));
 
 	let searchInputElement: HTMLInputElement;
 
