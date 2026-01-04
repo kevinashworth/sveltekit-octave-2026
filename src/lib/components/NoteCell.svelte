@@ -1,59 +1,43 @@
 <script lang="ts">
-	import '@awesome.me/webawesome/dist/components/button/button.js';
-	import '@awesome.me/webawesome/dist/components/popover/popover.js';
-	import '@awesome.me/webawesome/dist/styles/themes/default.css';
+	import * as Popover from '$lib/components/ui/popover/index.js';
 	import { NotepadTextDashedIcon, NotepadTextIcon } from '@lucide/svelte';
 
 	interface Props {
 		value: string | null | undefined; // HTML content
-		id: string | null;
 		project_title: string;
 	}
 
-	let { value, id = null, project_title }: Props = $props();
-	const popoverId = $derived(`popover-${id ? id : crypto.randomUUID()}`);
+	let { value, project_title }: Props = $props();
 </script>
 
-<div>
-	{#if value}
-		<wa-button
-			appearance="plain"
-			id={popoverId}
-			size="small"
-			title="Click to see Notes"
-			variant="brand"
-		>
-			<NotepadTextIcon />
-		</wa-button>
-	{:else}
-		<wa-button
-			appearance="plain"
-			disabled
-			size="small"
-			title="No notes available"
-			variant="neutral"
-		>
-			<NotepadTextDashedIcon />
-		</wa-button>
-	{/if}
-
-	<wa-popover distance={10} for={popoverId} placement="bottom">
-		<article>
-			<header>
-				<h6>{project_title}</h6>
-			</header>
-			{@html value}
-		</article>
-	</wa-popover>
+<div class="flex h-full items-center">
+	<Popover.Root>
+		{#if value}
+			<Popover.Trigger class="cursor-pointer">
+				<NotepadTextIcon class="size-4 text-blue-500" />
+			</Popover.Trigger>
+		{:else}
+			<Popover.Trigger>
+				<NotepadTextDashedIcon class="size-4 cursor-not-allowed text-gray-500" />
+			</Popover.Trigger>
+		{/if}
+		<Popover.Content>
+			<article>
+				<header>
+					<h6>{project_title}</h6>
+				</header>
+				{#if !value}
+					<p>No notes available.</p>
+				{:else}
+					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+					{@html value}
+				{/if}
+			</article>
+		</Popover.Content>
+	</Popover.Root>
 </div>
 
 <style>
-	/* https://github.com/shoelace-style/webawesome/discussions/1520#discussioncomment-15013951 */
-	wa-button[appearance='plain']::part(base) {
-		height: auto;
-		padding: 0;
-	}
-
 	article :global {
 		a {
 			color: #0071ec;

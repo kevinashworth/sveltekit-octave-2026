@@ -173,3 +173,34 @@ const { data: offices, error } = await supabase
 ```
 
 More information: [Supabase JavaScript Client](https://supabase.com/docs/reference/javascript/introduction)
+
+---
+
+## Migrating `the_address` column into `addresses`
+
+1. Apply the SQL migration to add a migration marker column:
+
+```sql
+-- supabase/migrations/004_add_the_address_migrated_at.sql
+ALTER TABLE public.contacts ADD COLUMN IF NOT EXISTS the_address_migrated_at timestamptz NULL;
+```
+
+2. Ensure `.env.local` contains `SUPABASE_URL` and `SUPABASE_KEY` (service role key). (NOTE TO SELF: `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_ANON_KEY`.)
+3. Run the migration script (TypeScript / ts-node):
+
+```bash
+# using tsx if available:
+npx tsx scripts/migrate-the_address.ts
+
+# or with ts-node:
+npx ts-node scripts/migrate-the_address.ts
+```
+
+4. Check the report at `scripts/migration-output/addresses-migration-report.json` for successes and failures.
+5. Validate several contacts in the UI and the database. When happy, you can prepare a SQL migration to drop the `the_address` column.
+
+Notes:
+
+- The script is idempotent: it marks rows with `the_address_migrated_at` so you can safely re-run.
+- The script will try to deduplicate addresses and create `contact_addresses` mappings.
+- For addresses that cannot be parsed, the script marks them for manual review and sets `the_address_migrated_at` so it does not retry indefinitely.

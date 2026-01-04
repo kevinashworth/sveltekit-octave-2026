@@ -1,12 +1,5 @@
 <script lang="ts">
-	import {
-		ArrowDownAZIcon,
-		ArrowDownIcon,
-		ArrowUpIcon,
-		ArrowUpZAIcon,
-		CircleXIcon,
-		SearchIcon
-	} from '@lucide/svelte';
+	import { CircleXIcon, SearchIcon } from '@lucide/svelte';
 	import type { ColumnDef, SortingState, TableOptions } from '@tanstack/svelte-table';
 	import {
 		createSvelteTable,
@@ -15,116 +8,57 @@
 		renderComponent
 	} from '@tanstack/svelte-table';
 	import debounce from 'debounce';
-	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { writable } from 'svelte/store';
 
 	import { browser } from '$app/environment';
-	import { goto } from '$app/navigation';
 	import { navigating } from '$app/state';
 	import DateCell from '$lib/components/DateCell.svelte';
+	import NonsortingHeader from '$lib/components/NonsortingHeader.svelte';
 	import NoteCell from '$lib/components/NoteCell.svelte';
+	import SortIcon from '$lib/components/SortIcon.svelte';
 	import TablePaginationControls from '$lib/components/TablePaginationControls.svelte';
-	import { DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
-	import { getPaginationState } from '$lib/stores/pagination-state.svelte';
 	import { formatDate } from '$lib/utils/date';
 	import { getModifierKeyPrefix } from '$lib/utils/keyboard';
+	import {
+		isNavigationInProgress,
+		navigateTo as navigateToUtil,
+		type GoToOptions,
+		type SearchParamValues
+	} from '$lib/utils/navigate';
 	import type { PageData } from './$types';
 
-	type ProjectWithOffice = PageData['projects'][number];
+	type Project = PageData['projects'][number];
 
 	let { data }: { data: PageData } = $props();
 	const projects = $derived(data.projects);
 	const length = $derived(data.projects.length);
 	const totalCount = $derived(data.totalCount);
 	const paginationSettings = $derived(data.paginationSettings);
+	const pageSize = $derived(data.pageSize);
 
-	const paginationState = getPaginationState();
-	const pageSize = paginationState.pageSize;
-
-	const searchQuery = $derived(data.search ?? '');
 	const sortBy = $derived(data.sortBy ?? 'updated_at');
 	const sortOrder = $derived(data.sortOrder ?? 'desc');
-	const modifierKeyPrefix = getModifierKeyPrefix();
-	let searchInput = $derived(searchQuery);
+
+	const search = $derived(data.search ?? '');
+	let searchInput = $derived(search);
+	let searchInputElement: HTMLInputElement;
 
 	const sorting = $derived<SortingState>([{ id: sortBy, desc: sortOrder === 'desc' }]);
 
 	// Track if we're loading from a search, page size, or sort change
-	const changeInProgress = $derived(
-		!!navigating &&
-			(navigating.from?.url.searchParams.get('search') !==
-				navigating.to?.url.searchParams.get('search') ||
-				navigating.from?.url.searchParams.get('pageSize') !==
-					navigating.to?.url.searchParams.get('pageSize') ||
-				navigating.from?.url.searchParams.get('sortBy') !==
-					navigating.to?.url.searchParams.get('sortBy') ||
-				navigating.from?.url.searchParams.get('sortOrder') !==
-					navigating.to?.url.searchParams.get('sortOrder'))
-	);
-
-	let searchInputElement: HTMLInputElement;
-
-	/**
-	 * Build a URL with the given search parameters
-	 */
-	function urlFor(params: {
-		page?: number;
-		search?: string;
-		pageSize?: number;
-		sortBy?: string;
-		sortOrder?: string;
-	}): string {
-		const searchParams = new SvelteURLSearchParams();
-
-		// Use provided search or fallback to current search
-		const searchValue = params.search !== undefined ? params.search : searchQuery;
-		if (searchValue) searchParams.set('search', searchValue);
-
-		// Use provided page or fallback to current page
-		const pageValue = params.page !== undefined ? params.page : paginationSettings.page;
-		searchParams.set('page', String(pageValue));
-
-		// Use provided pageSize or fallback to current pageSize
-		const pageSizeValue = params.pageSize !== undefined ? params.pageSize : pageSize;
-		if (pageSizeValue !== DEFAULT_PAGE_SIZE) {
-			searchParams.set('pageSize', String(pageSizeValue));
-		}
-
-		// Use provided sort or fallback to current sort
-		const sortByValue = params.sortBy !== undefined ? params.sortBy : sortBy;
-		if (sortByValue !== 'updated_at') {
-			searchParams.set('sortBy', sortByValue);
-		}
-
-		const sortOrderValue = params.sortOrder !== undefined ? params.sortOrder : sortOrder;
-		if (sortOrderValue !== 'desc') {
-			searchParams.set('sortOrder', sortOrderValue);
-		}
-
-		return `/projects?${searchParams.toString()}`;
-	}
+	const changeInProgress = $derived(isNavigationInProgress(navigating));
 
 	/**
 	 * Navigate to a URL with the given parameters.
 	 * Automatically preserves current state (pageSize, sort, search) unless explicitly overridden.
 	 */
-	async function navigateTo(
-		params: {
-			page?: number;
-			search?: string;
-			pageSize?: number;
-			sortBy?: string;
-			sortOrder?: string;
-		},
-		options: { keepFocus?: boolean } = {}
-	) {
-		// Always include current pageSize unless explicitly provided
-		const finalParams = {
-			pageSize: paginationState.pageSize,
-			...params
-		};
-		const url = urlFor(finalParams);
-		await goto(url, options); // eslint-disable-line svelte/no-navigation-without-resolve
+	async function navigateTo(params: SearchParamValues, options: GoToOptions = {}) {
+		await navigateToUtil(
+			params,
+			{ search, page: paginationSettings.page, pageSize, sortBy, sortOrder },
+			'/projects',
+			options
+		);
 	}
 
 	// Immediate search function
@@ -161,7 +95,6 @@
 
 	$effect(() => {
 		if (!browser) return;
-
 		window.addEventListener('keydown', handleGlobalKeydown);
 		return () => {
 			window.removeEventListener('keydown', handleGlobalKeydown);
@@ -187,7 +120,7 @@
 	}
 
 	// Column definitions
-	const columns: ColumnDef<ProjectWithOffice>[] = [
+	const columns: ColumnDef<Project>[] = [
 		{
 			accessorKey: 'project_title',
 			header: 'Project Title',
@@ -215,10 +148,12 @@
 		},
 		{
 			accessorKey: 'html_notes',
-			header: 'Notes',
-			// enableSorting: false,
-			// sortingFn: 'basic',
-			// sortUndefined: 'last',
+			header: () => {
+				return renderComponent(NonsortingHeader, {
+					value: 'Notes'
+				});
+			},
+			enableSorting: false,
 			cell: (info) => {
 				const props = {
 					value: info.getValue<string | null>(),
@@ -248,8 +183,8 @@
 	];
 
 	const tableOptions = $derived.by(() => {
-		return writable<TableOptions<ProjectWithOffice>>({
-			data: projects as ProjectWithOffice[],
+		return writable<TableOptions<Project>>({
+			data: projects as Project[],
 			columns,
 			state: {
 				sorting
@@ -268,12 +203,11 @@
 		<h1>Projects</h1>
 		<div class="relative max-w-sm flex-1">
 			<div
-				class="pointer-events-none absolute top-1/2 right-3 left-3 -translate-y-1/2 text-gray-400"
-			>
+				class="pointer-events-none absolute top-1/2 right-3 left-3 -translate-y-1/2 text-gray-400">
 				{#if changeInProgress}
 					<div
-						class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"
-					></div>
+						class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent">
+					</div>
 				{:else}
 					<SearchIcon class="h-4 w-4" />
 				{/if}
@@ -285,47 +219,45 @@
 				oninput={performSearch}
 				onkeydown={handleSearchKeydown}
 				placeholder="Search projects..."
-				type="text"
-			/>
-			<div
-				class="pointer-events-none absolute top-1/2 right-3 flex -translate-y-1/2 items-center gap-1 text-xs text-gray-400"
-			>
-				{#if !searchInput}
-					<span>{modifierKeyPrefix}</span>
-					<span>/</span>
-				{/if}
-			</div>
+				type="text" />
+			{#if !searchInput}
+				<div
+					class="absolute top-1/2 right-3 flex -translate-y-1/2 items-center gap-1 text-xs text-gray-400">
+					{getModifierKeyPrefix()} /
+				</div>
+			{/if}
 			{#if searchInput}
 				<button
 					class="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
 					onclick={clearSearch}
-					title="Clear search"
-				>
+					title="Clear search">
 					<CircleXIcon class="h-4 w-4" />
 				</button>
 			{/if}
 		</div>
 	</div>
 
-	{#if length === 0}
-		<div class="variant-soft-warning alert">
-			<div>
-				<strong>No projects found</strong>
-			</div>
+	{#if data.error}
+		<div>
+			<strong>Error:</strong>
+			{data.error}
+		</div>
+	{:else if length === 0}
+		<div>
+			<strong>No projects found</strong>
 		</div>
 	{:else}
 		<div class="space-y-4">
 			<!-- Table -->
-			<div class="relative table-wrap rounded-md border border-surface-200-800">
+			<div class="relative rounded-md border border-gray-200">
 				<!-- Loading overlay -->
 				{#if changeInProgress}
-					<div
-						class="absolute inset-0 z-10 bg-white/50 backdrop-blur-[0.5px] transition-opacity"
-					></div>
+					<div class="absolute inset-0 z-10 bg-white/50 backdrop-blur-[0.5px] transition-opacity">
+					</div>
 				{/if}
 				{#if browser && table}
 					<!-- Client-side rendered table with TanStack Table -->
-					<table class="table">
+					<table class="table w-full">
 						<thead>
 							{#each $table.getHeaderGroups() as headerGroup (headerGroup.id)}
 								<tr>
@@ -337,7 +269,6 @@
 											header.getContext()
 										)}
 										{@const isDateColumn = header.column.columnDef.sortingFn === 'datetime'}
-										{@const isNoteColumn = header.column.id === 'html_notes'}
 										<th class="group">
 											<button
 												type="button"
@@ -346,34 +277,16 @@
 												onclick={() => canSort && handleSort(header.column.id)}
 												class="inline-flex items-center font-semibold"
 												><Component />
-												{#if isDateColumn || isNoteColumn}
-													{#if sortState === 'asc'}
-														<ArrowUpIcon class="ml-1 inline h-6 w-6 text-secondary-500" />
-													{:else if sortState === 'desc'}
-														<ArrowDownIcon class="ml-1 inline h-6 w-6 text-secondary-500" />
-													{:else if canSort}
-														<ArrowDownIcon
-															class="ml-1 inline h-6 w-6 opacity-0 group-hover:opacity-30"
-														/>
-													{/if}
-												{:else if sortState === 'asc'}
-													<ArrowDownAZIcon class="ml-1 inline h-6 w-6 text-secondary-500" />
-												{:else if sortState === 'desc'}
-													<ArrowUpZAIcon class="ml-1 inline h-6 w-6 text-secondary-500" />
-												{:else if canSort}
-													<ArrowDownAZIcon
-														class="ml-1 inline h-6 w-6 opacity-0 group-hover:opacity-30"
-													/>
-												{/if}
+												<SortIcon {sortState} {isDateColumn} {canSort} />
 											</button>
 										</th>
 									{/each}
 								</tr>
 							{/each}
 						</thead>
-						<tbody>
+						<tbody class="[&>tr]:hover:bg-gray-200">
 							{#each $table.getRowModel().rows as row, i (row.id)}
-								<tr class:bg-surface-100={i % 2 === 0}>
+								<tr class:bg-gray-100={i % 2 === 0}>
 									{#each row.getVisibleCells() as cell (cell.id)}
 										{@const Component = flexRender(cell.column.columnDef.cell, cell.getContext())}
 										<td>
@@ -386,7 +299,7 @@
 					</table>
 				{:else}
 					<!-- Server-side rendered table (fallback for SSR or when browser is false) -->
-					<table class="table-hover table w-full">
+					<table class="table w-full">
 						<thead>
 							<tr>
 								<th>Project Title</th>
@@ -400,20 +313,16 @@
 								<th>Updated</th>
 							</tr>
 						</thead>
-						<tbody>
+						<tbody class="[&>tr]:hover:bg-gray-200">
 							{#each projects as project, i (project.id)}
-								<tr class:bg-surface-100={i % 2 === 0}>
+								<tr class:bg-gray-100={i % 2 === 0}>
 									<td>{project.project_title}</td>
 									<td>{project.casting_company ?? ''}</td>
 									<td>{project.network ?? ''}</td>
 									<td>{project.project_type ?? ''}</td>
 									<td>{project.shooting_location ?? ''}</td>
 									<td>
-										<NoteCell
-											value={project.html_notes}
-											id={project.id}
-											project_title={project.project_title}
-										/>
+										<NoteCell value={project.html_notes} project_title={project.project_title} />
 									</td>
 									<td>{project.status ?? ''}</td>
 									<td>
@@ -430,19 +339,12 @@
 			</div>
 
 			<TablePaginationControls
-				currentPage={paginationSettings.page}
-				totalPages={paginationSettings.amount}
-				{pageSize}
+				{paginationSettings}
 				{totalCount}
 				itemType="project"
-				{urlFor}
-				onPageSizeChange={async (newPageSize) => {
-					paginationState.setPageSize(newPageSize);
-					const firstProjectIndex = (paginationSettings.page - 1) * pageSize;
-					const newPage = Math.floor(firstProjectIndex / newPageSize) + 1;
-					await navigateTo({ pageSize: newPageSize, page: newPage });
-				}}
-			/>
+				basePath="/projects"
+				urlState={{ search, pageSize, sortBy, sortOrder }}
+				onNavigate={navigateTo} />
 		</div>
 	{/if}
 </div>
@@ -451,5 +353,7 @@
 	td,
 	th {
 		font-size: smaller;
+		padding: 0.25rem;
+		text-align: left;
 	}
 </style>

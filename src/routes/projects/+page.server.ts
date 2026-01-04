@@ -5,7 +5,7 @@ import type { Database } from '$lib/database.types';
 import { supabase } from '$lib/supabase';
 import type { PageServerLoad } from './$types';
 
-interface ProjectWithOffice {
+interface Project {
 	id: string;
 	project_title: string;
 	casting_company: string | null;
@@ -99,7 +99,7 @@ export const load: PageServerLoad = async ({ url }) => {
 
 		if (dataError) throw dataError;
 
-		const projects: ProjectWithOffice[] = rawProjects || [];
+		const projects: Project[] = rawProjects || [];
 
 		const paginationSettings = {
 			page: page,
@@ -109,11 +109,11 @@ export const load: PageServerLoad = async ({ url }) => {
 
 		return {
 			projects,
-			totalCount: totalCount,
-			pageSize: pageSize,
+			totalCount,
+			pageSize,
 			currentPage: page,
 			paginationSettings,
-			search: search,
+			search,
 			sortBy,
 			sortOrder
 		};
@@ -128,16 +128,17 @@ export const load: PageServerLoad = async ({ url }) => {
 		return {
 			projects: [],
 			totalCount: 0,
-			pageSize: pageSize,
+			pageSize,
 			currentPage: page,
 			paginationSettings: {
 				page: page,
 				amount: 0,
 				limit: 1
 			},
-			search: search,
+			search,
 			sortBy: 'updated_at',
-			sortOrder: 'desc'
+			sortOrder: 'desc',
+			error: error instanceof Error ? error.message : 'Unknown error'
 		};
 	}
 };
