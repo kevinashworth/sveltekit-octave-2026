@@ -60,6 +60,16 @@ export const load: PageServerLoad = async ({ url }) => {
 		? requestedPageSize
 		: DEFAULT_PAGE_SIZE;
 
+	let sortBy = url.searchParams.get('sortBy') ?? 'updated_at';
+	const sortOrder = url.searchParams.get('sortOrder') ?? 'desc';
+	const ascending = sortOrder === 'asc';
+
+	// Validate sortBy against allowed columns
+	const ALLOWED_SORT_COLUMNS = ['display_name', 'updated_at'];
+	if (!ALLOWED_SORT_COLUMNS.includes(sortBy)) {
+		sortBy = 'updated_at';
+	}
+
 	try {
 		// Split search into individual terms and filter out empty strings
 		const searchTerms = search.trim().split(/\s+/).filter(Boolean);
@@ -88,18 +98,16 @@ export const load: PageServerLoad = async ({ url }) => {
 
 		// If search terms exist, filter by them on the display_name field
 		if (hasSearch) {
-			// Build OR conditions for display_name only
 			const orConditions = searchTerms
 				.map((term) => {
 					return `display_name.ilike.%${term}%`;
 				})
 				.join(',');
-
 			query = query.or(orConditions);
 		}
 
 		// Build complete query before executing
-		const finalQuery = query.order('updated_at', { ascending: false });
+		const finalQuery = query.order(sortBy, { ascending });
 
 		// Execute query to get count and validate page
 		const countResponse = await finalQuery;
@@ -115,6 +123,8 @@ export const load: PageServerLoad = async ({ url }) => {
 			if (search) params.set('search', search);
 			params.set('page', String(clampedPage));
 			if (pageSize !== DEFAULT_PAGE_SIZE) params.set('pageSize', String(pageSize));
+			if (sortBy !== 'updated_at') params.set('sortBy', sortBy);
+			if (sortOrder !== 'desc') params.set('sortOrder', sortOrder);
 			throw redirect(307, `?${params.toString()}`);
 		}
 
@@ -122,9 +132,10 @@ export const load: PageServerLoad = async ({ url }) => {
 		const offset = (page - 1) * pageSize;
 
 		// Execute again with range for paginated data
-		const { data: rawOffices, error: dataError } = await query
-			.order('updated_at', { ascending: false })
-			.range(offset, offset + pageSize - 1);
+		const { data: rawOffices, error: dataError } = await finalQuery.range(
+			offset,
+			offset + pageSize - 1
+		);
 
 		if (dataError) throw dataError;
 
@@ -158,7 +169,9 @@ export const load: PageServerLoad = async ({ url }) => {
 			pageSize: pageSize,
 			currentPage: page,
 			paginationSettings,
-			search: search
+			search: search,
+			sortBy,
+			sortOrder
 		};
 	} catch (error) {
 		// Re-throw redirects - they have a status property
@@ -178,7 +191,10 @@ export const load: PageServerLoad = async ({ url }) => {
 				amount: 0,
 				limit: 1
 			},
-			search: search
+			search: search,
+			sortBy: 'updated_at',
+			sortOrder: 'desc',
+			error: error instanceof Error ? error.message : 'Unknown error'
 		};
 	}
 };

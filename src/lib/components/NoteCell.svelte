@@ -10,30 +10,32 @@
 	let { value, project_title }: Props = $props();
 </script>
 
-<Popover.Root>
-	{#if value}
-		<Popover.Trigger class="cursor-pointer">
-			<NotepadTextIcon class="text-blue-500" />
-		</Popover.Trigger>
-	{:else}
-		<Popover.Trigger>
-			<NotepadTextDashedIcon class="text-gray-500" />
-		</Popover.Trigger>
-	{/if}
-	<Popover.Content>
-		<article>
-			<header>
-				<h6>{project_title}</h6>
-			</header>
-			{#if !value}
-				<p>No notes available.</p>
-			{:else}
-				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-				{@html value}
-			{/if}
-		</article>
-	</Popover.Content>
-</Popover.Root>
+<div class="flex h-full items-center">
+	<Popover.Root>
+		{#if value}
+			<Popover.Trigger class="cursor-pointer">
+				<NotepadTextIcon class="size-4 text-blue-500" />
+			</Popover.Trigger>
+		{:else}
+			<Popover.Trigger>
+				<NotepadTextDashedIcon class="size-4 cursor-not-allowed text-gray-500" />
+			</Popover.Trigger>
+		{/if}
+		<Popover.Content>
+			<article>
+				<header>
+					<h6>{project_title}</h6>
+				</header>
+				{#if !value}
+					<p>No notes available.</p>
+				{:else}
+					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+					{@html value}
+				{/if}
+			</article>
+		</Popover.Content>
+	</Popover.Root>
+</div>
 
 <style>
 	article :global {

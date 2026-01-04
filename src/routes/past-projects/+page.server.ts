@@ -36,37 +36,29 @@ export const load: PageServerLoad = async ({ url }) => {
 		const searchTerms = search.trim().split(/\s+/).filter(Boolean);
 		const hasSearch = searchTerms.length > 0;
 
-		// Build the base query - select all past_projects
-		let query = supabase.from('past_projects').select(
-			`
-				id,
-				project_title,
-				casting_company,
-				network,
-				project_type,
-				html_notes,
-				status,
-				updated_at
-			`,
-			{ count: 'exact' }
-		);
+		// Build the base query
+		let query = supabase
+			.from('past_projects')
+			.select(
+				'id, project_title, casting_company, network, project_type, html_notes, status, updated_at',
+				{ count: 'exact' }
+			);
 
 		// If search terms exist, filter by them on project_title, network, and casting_company
 		if (hasSearch) {
 			const orConditions = searchTerms
-				.map((term) => {
-					return `project_title.ilike.%${term}%,network.ilike.%${term}%,casting_company.ilike.%${term}%`;
-				})
+				.flatMap((term) =>
+					['project_title', 'network', 'casting_company'].map((field) => `${field}.ilike.%${term}%`)
+				)
 				.join(',');
-
 			query = query.or(orConditions);
 		}
 
 		// Apply sorting
-		query = query.order(sortBy, { ascending });
+		const orderedQuery = query.order(sortBy, { ascending });
 
 		// Execute query to get count and validate page
-		const countResponse = await query;
+		const countResponse = await orderedQuery;
 		const totalCount = countResponse.count || 0;
 		if (countResponse.error) throw countResponse.error;
 
@@ -88,7 +80,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		const offset = (page - 1) * pageSize;
 
 		// Execute again with range for paginated data
-		const { data: rawProjects, error: dataError } = await query.range(
+		const { data: rawProjects, error: dataError } = await orderedQuery.range(
 			offset,
 			offset + pageSize - 1
 		);
@@ -133,7 +125,8 @@ export const load: PageServerLoad = async ({ url }) => {
 			},
 			search: search,
 			sortBy: 'updated_at',
-			sortOrder: 'desc'
+			sortOrder: 'desc',
+			error: error instanceof Error ? error.message : 'Unknown error'
 		};
 	}
 };

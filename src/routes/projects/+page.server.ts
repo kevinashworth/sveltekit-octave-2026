@@ -137,7 +137,8 @@ export const load: PageServerLoad = async ({ url }) => {
 			},
 			search: search,
 			sortBy: 'updated_at',
-			sortOrder: 'desc'
+			sortOrder: 'desc',
+			error: error instanceof Error ? error.message : 'Unknown error'
 		};
 	}
 };

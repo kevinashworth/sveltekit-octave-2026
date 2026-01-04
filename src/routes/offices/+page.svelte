@@ -7,12 +7,12 @@
 		CircleXIcon,
 		SearchIcon
 	} from '@lucide/svelte';
-	import type { ColumnDef, OnChangeFn, SortingState, TableOptions } from '@tanstack/svelte-table';
+	import type { ColumnDef, SortingState, TableOptions } from '@tanstack/svelte-table';
 	import {
 		createSvelteTable,
 		flexRender,
 		getCoreRowModel,
-		getSortedRowModel
+		renderComponent
 	} from '@tanstack/svelte-table';
 	import debounce from 'debounce';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
@@ -22,6 +22,7 @@
 	import { goto } from '$app/navigation';
 	import { navigating } from '$app/state';
 	import DateCell from '$lib/components/DateCell.svelte';
+	import NonsortingHeader from '$lib/components/NonsortingHeader.svelte';
 	import TablePaginationControls from '$lib/components/TablePaginationControls.svelte';
 	import { DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
 	import { formatDate } from '$lib/utils/date';
@@ -46,23 +47,21 @@
 	const searchQuery = $derived(data.search ?? '');
 	let searchInput = $derived(searchQuery);
 
-	let sorting = $state<SortingState>([{ id: 'updated_at', desc: true }]);
+	const sortBy = $derived(data.sortBy ?? 'updated_at');
+	const sortOrder = $derived(data.sortOrder ?? 'desc');
+	const sorting = $derived<SortingState>([{ id: sortBy, desc: sortOrder === 'desc' }]);
 
-	const setSorting: OnChangeFn<SortingState> = (updater) => {
-		if (updater instanceof Function) {
-			sorting = updater(sorting);
-		} else {
-			sorting = updater;
-		}
-	};
-
-	// Track if we're loading from a search or page size change
+	// Track if we're loading from a search, page size, or sort change
 	const changeInProgress = $derived(
 		!!navigating &&
 			(navigating.from?.url.searchParams.get('search') !==
 				navigating.to?.url.searchParams.get('search') ||
 				navigating.from?.url.searchParams.get('pageSize') !==
-					navigating.to?.url.searchParams.get('pageSize'))
+					navigating.to?.url.searchParams.get('pageSize') ||
+				navigating.from?.url.searchParams.get('sortBy') !==
+					navigating.to?.url.searchParams.get('sortBy') ||
+				navigating.from?.url.searchParams.get('sortOrder') !==
+					navigating.to?.url.searchParams.get('sortOrder'))
 	);
 
 	let searchInputElement: HTMLInputElement;
@@ -70,7 +69,13 @@
 	/**
 	 * Build a URL with the given search parameters
 	 */
-	function urlFor(params: { page?: number; search?: string; pageSize?: number }): string {
+	function urlFor(params: {
+		page?: number;
+		search?: string;
+		pageSize?: number;
+		sortBy?: string;
+		sortOrder?: string;
+	}): string {
 		const searchParams = new SvelteURLSearchParams();
 
 		// Use provided search or fallback to current search
@@ -87,6 +92,17 @@
 			searchParams.set('pageSize', String(pageSizeValue));
 		}
 
+		// Use provided sort or fallback to current sort
+		const sortByValue = params.sortBy !== undefined ? params.sortBy : sortBy;
+		if (sortByValue !== 'updated_at') {
+			searchParams.set('sortBy', sortByValue);
+		}
+
+		const sortOrderValue = params.sortOrder !== undefined ? params.sortOrder : sortOrder;
+		if (sortOrderValue !== 'desc') {
+			searchParams.set('sortOrder', sortOrderValue);
+		}
+
 		return `/offices?${searchParams.toString()}`;
 	}
 
@@ -94,10 +110,21 @@
 	 * Navigate to a URL with the given parameters
 	 */
 	async function navigateTo(
-		params: { page?: number; search?: string; pageSize?: number },
+		params: {
+			page?: number;
+			search?: string;
+			pageSize?: number;
+			sortBy?: string;
+			sortOrder?: string;
+		},
 		options: { keepFocus?: boolean } = {}
 	) {
-		const url = urlFor(params);
+		// Always include current pageSize unless explicitly provided
+		const finalParams = {
+			pageSize: pageSize,
+			...params
+		};
+		const url = urlFor(finalParams);
 		await goto(url, options); // eslint-disable-line svelte/no-navigation-without-resolve
 	}
 
@@ -133,6 +160,24 @@
 		}
 	}
 
+	// Handle server-side sorting
+	async function handleSort(columnId: string) {
+		const currentSort = sorting[0];
+		let newSortOrder: string;
+
+		if (currentSort?.id === columnId) {
+			// Toggle between asc and desc
+			newSortOrder = currentSort.desc ? 'asc' : 'desc';
+		} else {
+			// Default direction depends on column type: date columns default to desc, others to asc
+			const colDef = columns.find((c) => 'accessorKey' in c && c.accessorKey === columnId);
+			const sortingFn = colDef?.sortingFn;
+			newSortOrder = sortingFn === 'datetime' ? 'desc' : 'asc';
+		}
+
+		await navigateTo({ sortBy: columnId, sortOrder: newSortOrder, page: 1 });
+	}
+
 	$effect(() => {
 		if (!browser) return;
 
@@ -151,7 +196,13 @@
 		},
 		{
 			accessorKey: 'formattedAddress',
-			header: 'Address',
+			header: () => {
+				return renderComponent(NonsortingHeader, {
+					value: 'Address'
+				});
+			},
+
+			enableSorting: false,
 			sortingFn: 'alphanumeric'
 		},
 		{
@@ -164,14 +215,14 @@
 
 	const tableOptions = $derived.by(() => {
 		return writable<TableOptions<OfficeWithAddress>>({
-			data: offices as OfficeWithAddress[],
 			columns,
+			data: offices,
+			enableSortingRemoval: false, // because Last Updated is always sorted
+			getCoreRowModel: getCoreRowModel(),
+			manualSorting: true,
 			state: {
 				sorting
-			},
-			getCoreRowModel: getCoreRowModel(),
-			getSortedRowModel: getSortedRowModel(),
-			onSortingChange: setSorting
+			}
 		});
 	});
 
@@ -218,11 +269,14 @@
 		</div>
 	</div>
 
-	{#if length === 0}
-		<div class="variant-soft-warning alert">
-			<div>
-				<strong>No offices found</strong>
-			</div>
+	{#if data.error}
+		<div>
+			<strong>Error:</strong>
+			{data.error}
+		</div>
+	{:else if length === 0}
+		<div>
+			<strong>No offices found</strong>
 		</div>
 	{:else}
 		<div class="space-y-4">
@@ -252,25 +306,25 @@
 												type="button"
 												class:cursor-pointer={canSort}
 												class:select-none={canSort}
-												onclick={header.column.getToggleSortingHandler()}
+												onclick={() => canSort && handleSort(header.column.id)}
 												class="inline-flex items-center font-semibold"
 												><Component />
 												{#if isDateColumn}
 													{#if sortState === 'asc'}
-														<ArrowUpIcon class="text-secondary-500 ml-1 inline h-6 w-6" />
+														<ArrowUpIcon class="text-secondary-500 ml-1 inline h-4 w-4" />
 													{:else if sortState === 'desc'}
-														<ArrowDownIcon class="text-secondary-500 ml-1 inline h-6 w-6" />
+														<ArrowDownIcon class="text-secondary-500 ml-1 inline h-4 w-4" />
 													{:else if canSort}
 														<ArrowDownIcon
-															class="ml-1 inline h-6 w-6 opacity-0 group-hover:opacity-30" />
+															class="ml-1 inline h-4 w-4 opacity-0 group-hover:opacity-30" />
 													{/if}
 												{:else if sortState === 'asc'}
-													<ArrowDownAZIcon class="text-secondary-500 ml-1 inline h-6 w-6" />
+													<ArrowDownAZIcon class="text-secondary-500 ml-1 inline h-4 w-4" />
 												{:else if sortState === 'desc'}
-													<ArrowUpZAIcon class="text-secondary-500 ml-1 inline h-6 w-6" />
+													<ArrowUpZAIcon class="text-secondary-500 ml-1 inline h-4 w-4" />
 												{:else if canSort}
 													<ArrowDownAZIcon
-														class="ml-1 inline h-6 w-6 opacity-0 group-hover:opacity-30" />
+														class="ml-1 inline h-4 w-4 opacity-0 group-hover:opacity-30" />
 												{/if}
 											</button>
 										</th>

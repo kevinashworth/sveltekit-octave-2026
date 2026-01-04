@@ -22,6 +22,7 @@
 	import { goto } from '$app/navigation';
 	import { navigating } from '$app/state';
 	import DateCell from '$lib/components/DateCell.svelte';
+	import NonsortingHeader from '$lib/components/NonsortingHeader.svelte';
 	import NoteCell from '$lib/components/NoteCell.svelte';
 	import TablePaginationControls from '$lib/components/TablePaginationControls.svelte';
 	import { DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
@@ -183,7 +184,6 @@
 		await navigateTo({ sortBy: columnId, sortOrder: newSortOrder, page: 1 });
 	}
 
-	// Column definitions (only the requested fields)
 	const columns: ColumnDef<PastProject>[] = [
 		{
 			accessorKey: 'project_title',
@@ -207,7 +207,12 @@
 		},
 		{
 			accessorKey: 'html_notes',
-			header: 'Notes',
+			header: () => {
+				return renderComponent(NonsortingHeader, {
+					value: 'Notes'
+				});
+			},
+			enableSorting: false,
 			cell: (info) => {
 				const props = {
 					value: info.getValue<string | null>(),
@@ -286,11 +291,14 @@
 		</div>
 	</div>
 
-	{#if length === 0}
-		<div class="variant-soft-warning alert">
-			<div>
-				<strong>No past projects found</strong>
-			</div>
+	{#if data.error}
+		<div>
+			<strong>Error:</strong>
+			{data.error}
+		</div>
+	{:else if length === 0}
+		<div>
+			<strong>No past projects found</strong>
 		</div>
 	{:else}
 		<div class="space-y-4">
@@ -325,20 +333,20 @@
 												><Component />
 												{#if isDateColumn}
 													{#if sortState === 'asc'}
-														<ArrowUpIcon class="text-secondary-500 ml-1 inline h-6 w-6" />
+														<ArrowUpIcon class="text-secondary-500 ml-1 inline h-4 w-4" />
 													{:else if sortState === 'desc'}
-														<ArrowDownIcon class="text-secondary-500 ml-1 inline h-6 w-6" />
+														<ArrowDownIcon class="text-secondary-500 ml-1 inline h-4 w-4" />
 													{:else if canSort}
 														<ArrowDownIcon
-															class="ml-1 inline h-6 w-6 opacity-0 group-hover:opacity-30" />
+															class="ml-1 inline h-4 w-4 opacity-0 group-hover:opacity-30" />
 													{/if}
 												{:else if sortState === 'asc'}
-													<ArrowDownAZIcon class="text-secondary-500 ml-1 inline h-6 w-6" />
+													<ArrowDownAZIcon class="text-secondary-500 ml-1 inline h-4 w-4" />
 												{:else if sortState === 'desc'}
-													<ArrowUpZAIcon class="text-secondary-500 ml-1 inline h-6 w-6" />
+													<ArrowUpZAIcon class="text-secondary-500 ml-1 inline h-4 w-4" />
 												{:else if canSort}
 													<ArrowDownAZIcon
-														class="ml-1 inline h-6 w-6 opacity-0 group-hover:opacity-30" />
+														class="ml-1 inline h-4 w-4 opacity-0 group-hover:opacity-30" />
 												{/if}
 											</button>
 										</th>
