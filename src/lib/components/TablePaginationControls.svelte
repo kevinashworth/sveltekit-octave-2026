@@ -1,6 +1,6 @@
 <script lang="ts">
-	import * as ButtonGroup from '$lib/components/ui/button-group/index.ts';
-	import { Button } from '$lib/components/ui/button/index.ts';
+	import { Button } from '$lib/components/ui/button';
+	import * as ButtonGroup from '$lib/components/ui/button-group';
 	import { ALLOWED_PAGE_SIZES, DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
 	import { ArrowLeftIcon, ArrowRightIcon } from '@lucide/svelte';
 	import { queryParameters } from 'sveltekit-search-params';
@@ -22,13 +22,18 @@
 		onPageSizeChange(newPageSize);
 	}
 
-	const params = queryParameters({
-		pageSize: {
-			encode: (value: number) => value.toString(),
-			decode: (value: string | null) => (value ? parseInt(value) : null),
-			defaultValue: DEFAULT_PAGE_SIZE
+	const params = queryParameters(
+		{
+			pageSize: {
+				encode: (value: number) => value.toString(),
+				decode: (value: string | null) => (value ? parseInt(value) : null),
+				defaultValue: DEFAULT_PAGE_SIZE
+			}
+		},
+		{
+			showDefaults: false
 		}
-	});
+	);
 	const pageSize = $derived(params.pageSize);
 	const startIndex = $derived((currentPage - 1) * pageSize + 1);
 	const endIndex = $derived(Math.min(currentPage * pageSize, totalCount));

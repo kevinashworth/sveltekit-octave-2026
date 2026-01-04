@@ -47,14 +47,20 @@
 		// ]
 	};
 
-	const params = queryParameters({
-		pageSize: {
-			encode: (value: number) => value.toString(),
-			decode: (value: string | null) => (value ? parseInt(value) : null),
-			defaultValue: DEFAULT_PAGE_SIZE
+	const params = queryParameters(
+		{
+			pageSize: {
+				encode: (value: number) => value.toString(),
+				decode: (value: string | null) => (value ? parseInt(value) : null),
+				defaultValue: DEFAULT_PAGE_SIZE
+			}
+		},
+		{
+			showDefaults: false
 		}
-	});
+	);
 	const pageSize = $derived(params.pageSize);
+	$inspect('AppSidebar pageSize', pageSize); // debug, but it seems to change behavior when present?
 
 	// derived (reactive) map of hrefs that updates when pageSize changes
 	const navHrefs = $derived.by(() => {
@@ -67,10 +73,12 @@
 				let href = link.href;
 				// add pageSize to Contacts, Offices, Projects, Past Projects links
 				if (
-					href === '/contacts' ||
-					href === '/offices' ||
-					href === '/projects' ||
-					href === '/past-projects'
+					pageSize !== DEFAULT_PAGE_SIZE &&
+					(href === '/contacts' ||
+						href === '/offices' ||
+						href === '/offices2' ||
+						href === '/projects' ||
+						href === '/past-projects')
 				) {
 					href = `${href}?pageSize=${pageSize}`;
 				}

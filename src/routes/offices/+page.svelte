@@ -15,18 +15,20 @@
 		renderComponent
 	} from '@tanstack/svelte-table';
 	import debounce from 'debounce';
-	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { writable } from 'svelte/store';
 
 	import { browser } from '$app/environment';
-	import { goto } from '$app/navigation';
 	import { navigating } from '$app/state';
 	import DateCell from '$lib/components/DateCell.svelte';
 	import NonsortingHeader from '$lib/components/NonsortingHeader.svelte';
 	import TablePaginationControls from '$lib/components/TablePaginationControls.svelte';
-	import { DEFAULT_PAGE_SIZE } from '$lib/constants/pagination';
 	import { formatDate } from '$lib/utils/date';
 	import { getModifierKeyPrefix } from '$lib/utils/keyboard';
+	import {
+		type SearchParamValues,
+		buildUrl,
+		navigateTo as navigateToUtil
+	} from '$lib/utils/navigate';
 	import type { PageData } from './$types';
 
 	interface OfficeWithAddress {
@@ -66,66 +68,13 @@
 
 	let searchInputElement: HTMLInputElement;
 
-	/**
-	 * Build a URL with the given search parameters
-	 */
-	function urlFor(params: {
-		page?: number;
-		search?: string;
-		pageSize?: number;
-		sortBy?: string;
-		sortOrder?: string;
-	}): string {
-		const searchParams = new SvelteURLSearchParams();
-
-		// Use provided search or fallback to current search
-		const searchValue = params.search !== undefined ? params.search : searchQuery;
-		if (searchValue) searchParams.set('search', searchValue);
-
-		// Use provided page or fallback to current page
-		const pageValue = params.page !== undefined ? params.page : paginationSettings.page;
-		searchParams.set('page', String(pageValue));
-
-		// Use provided pageSize or fallback to current pageSize
-		const pageSizeValue = params.pageSize !== undefined ? params.pageSize : pageSize;
-		if (pageSizeValue !== DEFAULT_PAGE_SIZE) {
-			searchParams.set('pageSize', String(pageSizeValue));
-		}
-
-		// Use provided sort or fallback to current sort
-		const sortByValue = params.sortBy !== undefined ? params.sortBy : sortBy;
-		if (sortByValue !== 'updated_at') {
-			searchParams.set('sortBy', sortByValue);
-		}
-
-		const sortOrderValue = params.sortOrder !== undefined ? params.sortOrder : sortOrder;
-		if (sortOrderValue !== 'desc') {
-			searchParams.set('sortOrder', sortOrderValue);
-		}
-
-		return `/offices?${searchParams.toString()}`;
-	}
-
-	/**
-	 * Navigate to a URL with the given parameters
-	 */
-	async function navigateTo(
-		params: {
-			page?: number;
-			search?: string;
-			pageSize?: number;
-			sortBy?: string;
-			sortOrder?: string;
-		},
-		options: { keepFocus?: boolean } = {}
-	) {
-		// Always include current pageSize unless explicitly provided
-		const finalParams = {
-			pageSize: pageSize,
-			...params
-		};
-		const url = urlFor(finalParams);
-		await goto(url, options); // eslint-disable-line svelte/no-navigation-without-resolve
+	async function navigateTo(params: SearchParamValues, options: GoToOptions = {}) {
+		await navigateToUtil(
+			params,
+			{ search: searchQuery, page: paginationSettings.page, pageSize, sortBy, sortOrder },
+			'/offices',
+			options
+		);
 	}
 
 	// Immediate search function
@@ -375,7 +324,12 @@
 				totalPages={paginationSettings.amount}
 				{totalCount}
 				itemType="office"
-				{urlFor}
+				urlFor={(p) =>
+					buildUrl(
+						p,
+						{ search: searchQuery, page: paginationSettings.page, pageSize, sortBy, sortOrder },
+						'/offices'
+					)}
 				onPageSizeChange={async (newPageSize) => {
 					const firstOfficeIndex = (paginationSettings.page - 1) * pageSize;
 					const newPage = Math.floor(firstOfficeIndex / newPageSize) + 1;
