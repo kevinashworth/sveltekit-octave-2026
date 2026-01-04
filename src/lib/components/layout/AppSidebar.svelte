@@ -22,7 +22,6 @@
 		information: [
 			{ label: 'Contacts', href: '/contacts', icon: ContactIcon },
 			{ label: 'Offices', href: '/offices', icon: BuildingIcon },
-			{ label: 'Offices2', href: '/offices2', icon: BuildingIcon },
 			{ label: 'Projects', href: '/projects', icon: CameraIcon },
 			{ label: 'Past Projects', href: '/past-projects', icon: CameraIcon }
 		]
@@ -76,7 +75,6 @@
 					pageSize !== DEFAULT_PAGE_SIZE &&
 					(href === '/contacts' ||
 						href === '/offices' ||
-						href === '/offices2' ||
 						href === '/projects' ||
 						href === '/past-projects')
 				) {

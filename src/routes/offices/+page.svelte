@@ -16,6 +16,7 @@
 	import NonsortingHeader from '$lib/components/NonsortingHeader.svelte';
 	import SortIcon from '$lib/components/SortIcon.svelte';
 	import TablePaginationControls from '$lib/components/TablePaginationControls.svelte';
+	import * as Table from '$lib/components/ui/table';
 	import { formatDate } from '$lib/utils/date';
 	import { getModifierKeyPrefix } from '$lib/utils/keyboard';
 	import {
@@ -219,10 +220,10 @@
 				{/if}
 				{#if browser && table}
 					<!-- Client-side rendered table with TanStack Table -->
-					<table class="table w-full">
-						<thead>
+					<Table.Root>
+						<Table.Header>
 							{#each $table.getHeaderGroups() as headerGroup (headerGroup.id)}
-								<tr>
+								<Table.Row>
 									{#each headerGroup.headers as header (header.id)}
 										{@const canSort = header.column.getCanSort()}
 										{@const sortState = header.column.getIsSorted()}
@@ -231,7 +232,7 @@
 											header.getContext()
 										)}
 										{@const isDateColumn = header.column.columnDef.sortingFn === 'datetime'}
-										<th class="group">
+										<Table.Head class="group  py-1 text-sm">
 											<button
 												type="button"
 												class:cursor-pointer={canSort}
@@ -241,46 +242,46 @@
 												><Component />
 												<SortIcon {sortState} {isDateColumn} {canSort} />
 											</button>
-										</th>
+										</Table.Head>
 									{/each}
-								</tr>
+								</Table.Row>
 							{/each}
-						</thead>
-						<tbody class="[&>tr]:hover:bg-gray-200">
+						</Table.Header>
+						<Table.Body>
 							{#each $table.getRowModel().rows as row, i (row.id)}
-								<tr class:bg-gray-100={i % 2 === 0}>
+								<Table.Row>
 									{#each row.getVisibleCells() as cell (cell.id)}
 										{@const Component = flexRender(cell.column.columnDef.cell, cell.getContext())}
-										<td>
+										<Table.Cell class="py-1 text-sm">
 											<Component />
-										</td>
+										</Table.Cell>
 									{/each}
-								</tr>
+								</Table.Row>
 							{/each}
-						</tbody>
-					</table>
+						</Table.Body>
+					</Table.Root>
 				{:else}
 					<!-- Server-side rendered table (fallback for SSR or when browser is false) -->
-					<table class="table w-full">
-						<thead>
-							<tr>
-								<th>Office Name</th>
-								<th>Address</th>
-								<th>Updated</th>
-							</tr>
-						</thead>
-						<tbody>
+					<Table.Root>
+						<Table.Header>
+							<Table.Row>
+								<Table.Head>Office Name</Table.Head>
+								<Table.Head>Address</Table.Head>
+								<Table.Head>Updated</Table.Head>
+							</Table.Row>
+						</Table.Header>
+						<Table.Body>
 							{#each offices as office (office.id)}
-								<tr>
-									<td>{office.display_name}</td>
-									<td>{office.formattedAddress}</td>
-									<td>
+								<Table.Row>
+									<Table.Cell>{office.display_name}</Table.Cell>
+									<Table.Cell>{office.formattedAddress}</Table.Cell>
+									<Table.Cell>
 										<DateCell value={office.updated_at} />
-									</td>
-								</tr>
+									</Table.Cell>
+								</Table.Row>
 							{/each}
-						</tbody>
-					</table>
+						</Table.Body>
+					</Table.Root>
 				{/if}
 			</div>
 
@@ -294,12 +295,3 @@
 		</div>
 	{/if}
 </div>
-
-<style>
-	td,
-	th {
-		font-size: smaller;
-		padding: 0.25rem;
-		text-align: left;
-	}
-</style>
