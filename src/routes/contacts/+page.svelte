@@ -1,12 +1,5 @@
 <script lang="ts">
-	import {
-		ArrowDownAZIcon,
-		ArrowDownIcon,
-		ArrowUpIcon,
-		ArrowUpZAIcon,
-		CircleXIcon,
-		SearchIcon
-	} from '@lucide/svelte';
+	import { CircleXIcon, SearchIcon } from '@lucide/svelte';
 	import type { ColumnDef, SortingState, TableOptions } from '@tanstack/svelte-table';
 	import {
 		createSvelteTable,
@@ -22,6 +15,7 @@
 	import { navigating } from '$app/state';
 	import ContactCell from '$lib/components/ContactCell.svelte';
 	import DateCell from '$lib/components/DateCell.svelte';
+	import SortIcon from '$lib/components/SortIcon.svelte';
 	import TablePaginationControls from '$lib/components/TablePaginationControls.svelte';
 	import { formatDate } from '$lib/utils/date';
 	import { getModifierKeyPrefix } from '$lib/utils/keyboard';
@@ -243,23 +237,7 @@
 												onclick={() => canSort && handleSort(header.column.id)}
 												class="inline-flex items-center font-semibold"
 												><Component />
-												{#if isDateColumn}
-													{#if sortState === 'asc'}
-														<ArrowUpIcon class="text-secondary-500 ml-1 inline h-4 w-4" />
-													{:else if sortState === 'desc'}
-														<ArrowDownIcon class="text-secondary-500 ml-1 inline h-4 w-4" />
-													{:else if canSort}
-														<ArrowDownIcon
-															class="ml-1 inline h-4 w-4 opacity-0 group-hover:opacity-30" />
-													{/if}
-												{:else if sortState === 'asc'}
-													<ArrowDownAZIcon class="text-secondary-500 ml-1 inline h-4 w-4" />
-												{:else if sortState === 'desc'}
-													<ArrowUpZAIcon class="text-secondary-500 ml-1 inline h-4 w-4" />
-												{:else if canSort}
-													<ArrowDownAZIcon
-														class="ml-1 inline h-4 w-4 opacity-0 group-hover:opacity-30" />
-												{/if}
+												<SortIcon {sortState} {isDateColumn} {canSort} />
 											</button>
 										</th>
 									{/each}
@@ -286,9 +264,7 @@
 							<tr>
 								<th>Name</th>
 								<th>Address</th>
-								<th
-									>Last Updated <ArrowDownIcon
-										class="text-secondary-500 ml-1 inline h-4 w-4" /></th>
+								<th>Last Updated</th>
 							</tr>
 						</thead>
 						<tbody class="[&>tr]:hover:bg-gray-200">

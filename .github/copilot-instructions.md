@@ -187,6 +187,29 @@ This project uses a custom Svelte 5-compatible fork (`tanstack-table-8-svelte-5`
 
 **Important**: Server-side sorting is preferred. Set `manualSorting: true` and handle sorting in `+page.server.ts`.
 
+### Sort Icon Component
+
+Use the `SortIcon` component for consistent sort indicators in table headers:
+
+```svelte
+import SortIcon from '$lib/components/SortIcon.svelte';
+
+// In table header
+{@const canSort = header.column.getCanSort()}
+{@const sortState = header.column.getIsSorted()}
+{@const isDateColumn = header.column.columnDef.sortingFn === 'datetime'}
+
+<button onclick={() => canSort && handleSort(header.column.id)}>
+	<Component />
+	<SortIcon {sortState} {isDateColumn} {canSort} />
+</button>
+```
+
+The component automatically shows:
+- Date columns: Arrow up/down icons
+- Text columns: A-Z / Z-A icons
+- Hover state for unsorted columns
+
 ### Tailwind CSS v4
 
 - Config in `@import "tailwindcss"` in `src/app.css`
